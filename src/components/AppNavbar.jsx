@@ -6,7 +6,7 @@ export default function AppNavbar(){
     <Navbar expand="lg" className="shadow-sm" sticky="top">
       <Container>
         <Navbar.Brand href="#home" className="d-flex align-items-center">
-          <img src="/public/logo.PNG" alt="Vianelo" height="44" />
+          <img src="/public/logo.png" alt="Vianelo" height="44" />
           <span className="ms-2 brand-title"></span>
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="nav" />
