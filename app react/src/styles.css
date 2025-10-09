@@ -1,0 +1,45 @@
+:root{
+  --vianelo-primary: #E65847;
+  --vianelo-accent1: #E6C7F9;
+  --vianelo-accent2: #822793;
+  --vianelo-dark: #132D2E;
+  --vianelo-bg: #fff;
+  --font-display: 'Collier', Georgia, 'Times New Roman', serif;
+  --font-body: 'Darwin', 'Poppins', 'Inter', sans-serif;
+}
+
+body{
+  font-family: var(--font-body);
+  color: var(--vianelo-dark);
+  background: var(--vianelo-bg);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+.brand-title{
+  font-family: var(--font-display);
+  color: var(--vianelo-dark);
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+.navbar{background: #fff;}
+.hero {
+  background: linear-gradient(0deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18)),
+              url('/public/hero.jpg') center/cover no-repeat;
+  min-height: 420px;
+  display:flex;
+  align-items:center;
+  color: white;
+  text-align:center;
+}
+.hero .lead {opacity:0.95}
+.btn-vianelo{
+  background: var(--vianelo-primary);
+  border-color: var(--vianelo-primary);
+  color: white;
+}
+.section-title{color:var(--vianelo-dark); font-family:var(--font-display); margin-bottom:1rem;}
+.card .price{color:var(--vianelo-primary); font-weight:700;}
+.footer{background:var(--vianelo-dark); color:white; padding:2rem 0;}
+@media(max-width:576px){
+  .hero{min-height:300px; padding:2rem 1rem;}
+}
