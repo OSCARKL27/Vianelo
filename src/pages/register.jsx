@@ -112,7 +112,11 @@ export default function Register() {
                     value={formData.name}
                     onChange={handleInputChange}
                     isInvalid={!!errors.name}
+<<<<<<< HEAD
                     placeholder="Nombre completo"
+=======
+                    placeholder="Tu nombre completo"
+>>>>>>> 9cd875d99cf8491291e5bcf53d2422fca4644df8
                   />
                   <Form.Control.Feedback type="invalid">{errors.name}</Form.Control.Feedback>
                 </Form.Group>
@@ -125,7 +129,11 @@ export default function Register() {
                     value={formData.username}
                     onChange={handleInputChange}
                     isInvalid={!!errors.username}
+<<<<<<< HEAD
                     placeholder="Usuario"
+=======
+                    placeholder="Ej: oscar_landeros"
+>>>>>>> 9cd875d99cf8491291e5bcf53d2422fca4644df8
                   />
                   <Form.Control.Feedback type="invalid">{errors.username}</Form.Control.Feedback>
                 </Form.Group>
