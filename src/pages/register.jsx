@@ -125,8 +125,7 @@ export default function Register() {
                     value={formData.username}
                     onChange={handleInputChange}
                     isInvalid={!!errors.username}
-                    placeholder="Usuario"
-                  />
+                    placeholder="Usuario" />
                   <Form.Control.Feedback type="invalid">{errors.username}</Form.Control.Feedback>
                 </Form.Group>
 
