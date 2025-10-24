@@ -4,7 +4,7 @@ import { Card } from 'react-bootstrap'
 export default function ProductCard({item}){
   return (
     <Card className="h-100">
-      <Card.Img variant="top" src={item.image ? `/public/${item.image}` : '/public/placeholder.jpg'} />
+      <Card.Img variant="top" src={item.image ? `/${item.image}` : '/placeholder.jpg'} />
       <Card.Body className="d-flex flex-column">
         <Card.Title>{item.name}</Card.Title>
         <Card.Text>{item.description}</Card.Text>
