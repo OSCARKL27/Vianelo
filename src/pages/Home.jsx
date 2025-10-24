@@ -14,23 +14,24 @@ export default function Home() {
   return (
     <main>  
       {/* 🏠 Sección principal */}
-      <section id="home" className="hero">
-        <Container>
-          <Row className="justify-content-center">
-            <Col lg={8}>
-              <h1 className="display-5 fw-bold">
-                Antojos dementes, corazón y ensueño
-              </h1>
-              <p className="lead">
-                Disfruta nuestras versiones de clásicos y experimentos repostero-gastronómicos.
-              </p>
-              <Button href="#menu" className="btn-vianelo btn-lg">
-                Ver menú
-              </Button>
-            </Col>
-          </Row>
-        </Container>
-      </section>
+    <section id="home" className="hero">
+  <Container>
+    <Row className="justify-content-center">
+      <Col lg={8}>
+        <h1 className="display-5 fw-bold">
+          Antojos dementes, corazón y ensueño
+        </h1>
+        <p className="lead">
+          Disfruta nuestras versiones de clásicos y experimentos repostero-gastronómicos.
+        </p>
+        <Button href="#menu" className="btn-vianelo btn-lg">
+          Ver menú
+        </Button>
+      </Col>
+    </Row>
+  </Container>
+</section>
+
 
       {/* 🌟 Productos destacados */}
       <section id="destacados" className="py-5">

@@ -2,9 +2,9 @@
   "items": [
     {
       "id": 1,
-      "name": "Pastel sorpresa",
+      "name": "Pumpkin Spice y pan de muerto",
       "description": "Porción con cariño",
-      "price": 45,
+      "price": 95,
       "image": "cake1.jpg"
     },
     {
