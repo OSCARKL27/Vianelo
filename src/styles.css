@@ -23,14 +23,20 @@ body{
 }
 .navbar{background: #fff;}
 .hero {
-  background: linear-gradient(0deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18)),
-              url('/public/hero.jpg') center/cover no-repeat;
-  min-height: 420px;
-  display:flex;
-  align-items:center;
+  background:
+    linear-gradient(0deg, rgba(0,0,0,0.25), rgba(0,0,0,0.25)),
+    url('/public/hero1.jpg') left/33% no-repeat,
+    url('/public/hero2.jpg') center/33% no-repeat,
+    url('/public/hero3.jpg') right/33% no-repeat;
+  min-height: 480px;
+  display: flex;
+  align-items: center;
   color: white;
-  text-align:center;
+  text-align: center;
+  background-color: #000; /* color de respaldo */
 }
+
+
 .hero .lead {opacity:0.95}
 .btn-vianelo{
   background: var(--vianelo-primary);
