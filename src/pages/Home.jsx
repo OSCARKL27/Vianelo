@@ -12,19 +12,7 @@ export default function Home() {
   }
 
   return (
-    <main>
-      {/* ✅ Encabezado de bienvenida */}
-      <section className="py-3 bg-light text-center border-bottom">
-        <Container>
-         <h5 className="mb-1 text-secondary">
-          Bienvenido, <strong>{user?.displayName || user?.email}</strong> 👋
-         </h5>
-          <Button variant="outline-danger" size="sm" onClick={handleLogout}>
-            Cerrar sesión
-          </Button>
-        </Container>
-      </section>
-
+    <main>  
       {/* 🏠 Sección principal */}
       <section id="home" className="hero">
         <Container>
