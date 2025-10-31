@@ -1,0 +1,76 @@
+:root{
+  --vianelo-primary: #E65847;
+  --vianelo-accent1: #E6C7F9;
+  --vianelo-accent2: #822793;
+  --vianelo-dark: #132D2E;
+  --vianelo-bg: #fff;
+  --font-display: 'Collier', Georgia, 'Times New Roman', serif;
+  --font-body: 'Darwin', 'Poppins', 'Inter', sans-serif;
+}
+
+body{
+  font-family: var(--font-body);
+  color: var(--vianelo-dark);
+  background: var(--vianelo-bg);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+.brand-title{
+  font-family: var(--font-display);
+  color: var(--vianelo-dark);
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+.navbar{background: #fff;}
+.hero {
+  background:
+    linear-gradient(0deg, rgba(0,0,0,0.25), rgba(0,0,0,0.25)),
+    url('/public/hero1.jpg') left/33% no-repeat,
+    url('/public/hero2.jpg') center/33% no-repeat,
+    url('/public/hero3.jpg') right/33% no-repeat;
+  min-height: 480px;
+  display: flex;
+  align-items: center;
+  color: white;
+  text-align: center;
+  background-color: #000; /* color de respaldo */
+}
+
+
+.hero .lead {opacity:0.95}
+.btn-vianelo{
+  background: var(--vianelo-primary);
+  border-color: var(--vianelo-primary);
+  color: white;
+}
+.section-title{color:var(--vianelo-dark); font-family:var(--font-display); margin-bottom:1rem;}
+.card .price{color:var(--vianelo-primary); font-weight:700;}
+.footer{background:var(--vianelo-dark); color:white; padding:2rem 0;}
+@media(max-width:576px){
+  .hero{min-height:300px; padding:2rem 1rem;}
+}
+/* Animación suave respetando tu brand minimal con Bootstrap */
+.product-card {
+  transition: transform .18s ease, box-shadow .18s ease;
+  border-radius: 1rem;
+}
+.product-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(0,0,0,.08);
+}
+.product-card.press {
+  transform: scale(.98);
+}
+
+.product-img {
+  transition: transform .35s ease;
+}
+.product-card:hover .product-img {
+  transform: scale(1.04);
+}
+
+/* Botón principal del brand: si ya tienes .btn-vianelo, úsala; esto es por si no */
+.btn-vianelo {
+  border-radius: .75rem;
+  font-weight: 600;
+}
