@@ -47,11 +47,6 @@ export default function Home() {
               </Col>
             ))}
           </Row>
-          <div className="text-center mt-4">
-            <Button as="a" href="/menu" variant="outline-primary" className="btn-vianelo">
-              Ver todo el menú
-            </Button>
-          </div>
         </Container>
       </section>
     </main>

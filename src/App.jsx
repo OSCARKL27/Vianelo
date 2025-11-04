@@ -7,6 +7,7 @@ import MenuPage from './pages/Menu.jsx'         // 👈 nueva página del menú
 import LoginPage from './pages/login.jsx'
 import RegisterPage from './pages/register.jsx'
 import Footer from './components/Footer'
+import 'bootstrap-icons/font/bootstrap-icons.css'
 
 // Rutas protegidas
 import ProtectedRoute from './components/ProtectedRoute'   // solo requiere estar logueado

@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../services/firebase';
-import { Link, useNavigate } from 'react-router-dom'; // ✅ importamos useNavigate
+import { Link, useNavigate } from 'react-router-dom';
 
-export default function Login() { // ✅ nombre con mayúscula
+export default function Login() { 
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState('');
-  const navigate = useNavigate(); // ✅ para redirigir al Home
+  const navigate = useNavigate(); 
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -36,7 +36,7 @@ export default function Login() { // ✅ nombre con mayúscula
 
     try {
       await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      navigate('/'); // ✅ redirige al Home tras login exitoso
+      navigate('/'); 
     } catch (error) {
       console.error('Error al iniciar sesión:', error);
       switch (error.code) {
@@ -67,7 +67,7 @@ export default function Login() { // ✅ nombre con mayúscula
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-      navigate('/'); // ✅ también redirige al Home
+      navigate('/'); 
     } catch (error) {
       console.error('Error con Google:', error);
       setAuthError('Error al iniciar sesión con Google');
@@ -98,7 +98,7 @@ export default function Login() { // ✅ nombre con mayúscula
                     value={formData.email}
                     onChange={handleInputChange}
                     isInvalid={!!errors.email}
-                    placeholder="tu@email.com"
+                    placeholder="Correo electrónico"
                   />
                   <Form.Control.Feedback type="invalid">{errors.email}</Form.Control.Feedback>
                 </Form.Group>
@@ -111,7 +111,7 @@ export default function Login() { // ✅ nombre con mayúscula
                     value={formData.password}
                     onChange={handleInputChange}
                     isInvalid={!!errors.password}
-                    placeholder="Tu contraseña"
+                    placeholder="Contraseña"
                   />
                   <Form.Control.Feedback type="invalid">{errors.password}</Form.Control.Feedback>
                 </Form.Group>
