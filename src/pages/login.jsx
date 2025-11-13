@@ -77,14 +77,15 @@ export default function Login() {
   };
 
   return (
-    <Container fluid className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
+    <Container fluid className="min-vh-100 d-flex align-items-center justify-content-center login-bg">
       <Row className="w-100 justify-content-center">
         <Col xs={12} sm={8} md={6} lg={4}>
-          <Card className="shadow-lg border-0">
+          <Card className="shadow-lg border-0 login-card">
             <Card.Body className="p-5">
+
               <div className="text-center mb-4">
-                <h2 className="fw-bold text-primary">Iniciar Sesión</h2>
-                <p className="text-muted">Bienvenido de vuelta</p>
+                <h2 className="fw-bold login-title">Iniciar Sesión</h2>
+                <p className="login-subtitle">Bienvenido de vuelta</p>
               </div>
 
               {authError && <Alert variant="danger">{authError}</Alert>}
@@ -116,10 +117,15 @@ export default function Login() {
                   <Form.Control.Feedback type="invalid">{errors.password}</Form.Control.Feedback>
                 </Form.Group>
 
-                <Button variant="primary" type="submit" className="w-100 py-2 mb-3" disabled={isLoading}>
+                <Button 
+                  type="submit" 
+                  className="w-100 py-2 mb-3 btn-login" 
+                  disabled={isLoading}
+                >
                   {isLoading ? (
                     <>
-                      <Spinner as="span" animation="border" size="sm" className="me-2" /> Iniciando sesión...
+                      <Spinner as="span" animation="border" size="sm" className="me-2" /> 
+                      Iniciando sesión...
                     </>
                   ) : (
                     'Iniciar Sesión'
@@ -127,11 +133,11 @@ export default function Login() {
                 </Button>
               </Form>
 
-              <div className="text-center mb-3 text-muted">o</div>
+              <div className="text-center mb-3 divider-text">o</div>
 
               <Button
+                className="w-100 py-2 mb-3 btn-google"
                 variant="outline-danger"
-                className="w-100 py-2 mb-3"
                 onClick={handleGoogleLogin}
                 disabled={isLoading}
               >
@@ -141,11 +147,12 @@ export default function Login() {
               <div className="text-center">
                 <p className="mb-0">
                   ¿No tienes cuenta?{' '}
-                  <Link to="/register" className="text-decoration-none fw-semibold text-primary">
+                  <Link to="/register" className="text-decoration-none login-link">
                     Regístrate aquí
                   </Link>
                 </p>
               </div>
+
             </Card.Body>
           </Card>
         </Col>

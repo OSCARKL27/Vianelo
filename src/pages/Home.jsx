@@ -39,7 +39,7 @@ export default function Home() {
       {/* 🌟 Destacados */}
       <section id="destacados" className="py-5">
         <Container>
-          <h2 className="section-title text-center mb-4">Destacados</h2>
+          <h2 className="section-title text-center mb-4 text-light">Destacados</h2>
           <Row className="g-3">
             {destacados.map((it) => (
               <Col md={4} key={it.id}>

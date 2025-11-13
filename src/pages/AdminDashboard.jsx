@@ -56,14 +56,22 @@ export default function AdminDashboard() {
   }
 
   return (
-    <Container className="py-4">
+    <Container className="py-4 admin-bg min-vh-100">
       <Row className="mb-3 align-items-center">
         <Col>
-          <h2>Panel de administración</h2>
-          <p className="text-muted m-0">Gestiona los productos del menú y su inventario.</p>
+          <h2 className="admin-title">Panel de administración</h2>
+          <p className="m-0 admin-subtitle">
+            Gestiona los productos del menú y su inventario.
+          </p>
         </Col>
         <Col className="text-end">
-          <Button onClick={openNew} disabled={busy}>Nuevo producto</Button>
+          <Button 
+            onClick={openNew} 
+            disabled={busy} 
+            className="btn-admin-primary"
+          >
+            Nuevo producto
+          </Button>
         </Col>
       </Row>
 
@@ -78,7 +86,7 @@ export default function AdminDashboard() {
         </Alert>
       )}
 
-      <Card className="shadow-sm">
+      <Card className="shadow-sm admin-card">
         <Card.Body>
           {loading ? (
             <div>Cargando...</div>
@@ -87,7 +95,7 @@ export default function AdminDashboard() {
               Ocurrió un error cargando productos. Revisa la consola y tus reglas de Firestore/Storage.
             </Alert>
           ) : (
-            <Table responsive hover>
+            <Table responsive hover className="admin-table">
               <thead>
                 <tr>
                   <th>Imagen</th>
@@ -121,12 +129,26 @@ export default function AdminDashboard() {
                     <td>{p.category || '-'}</td>
                     <td>${Number(p.price).toFixed(2)}</td>
                     <td><InventoryBadge stock={p.stock} /></td>
-                    <td>{p.isActive ? 'Activo' : 'Oculto'}</td>
+                    <td className="admin-status">
+                      {p.isActive ? 'Activo' : 'Oculto'}
+                    </td>
                     <td className="text-end">
-                      <Button size="sm" variant="outline-primary" className="me-2" onClick={() => openEdit(p)} disabled={busy}>
+                      <Button
+                        size="sm"
+                        variant="outline-primary"
+                        className="me-2 btn-admin-secondary"
+                        onClick={() => openEdit(p)}
+                        disabled={busy}
+                      >
                         Editar
                       </Button>
-                      <Button size="sm" variant="outline-danger" onClick={() => handleDelete(p)} disabled={busy}>
+                      <Button
+                        size="sm"
+                        variant="outline-danger"
+                        className="btn-admin-danger"
+                        onClick={() => handleDelete(p)}
+                        disabled={busy}
+                      >
                         Eliminar
                       </Button>
                     </td>

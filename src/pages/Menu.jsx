@@ -17,7 +17,7 @@ export default function MenuPage() {
   return (
     <main className="py-5">
       <Container>
-        <h1 className="text-center mb-4">Menú completo</h1>
+        <h1 className="text-center mb-4 text-light">Menú completo</h1>
         <Row className="g-3">
           {products.map((it) => (
             <Col md={4} key={it.id}>
