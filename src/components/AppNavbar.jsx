@@ -20,9 +20,7 @@ export default function AppNavbar() {
         <Navbar.Toggle aria-controls="nav" />
         <Navbar.Collapse id="nav">
           <Nav className="ms-auto align-items-center">
-            <Nav.Link as={Link} to="/">Inicio</Nav.Link>
-            <Nav.Link as={Link} to="/#destacados">Destacados</Nav.Link>
-            <Nav.Link as={Link} to="/#menu">Menú</Nav.Link>
+            <Nav.Link as={Link} to="/menu">Menú</Nav.Link>
             <Nav.Link href="https://wa.me/5216671234567?text=Hola%20me%20interesa%20tu%20servicio"
               target="_blank">Contacto</Nav.Link>
 
