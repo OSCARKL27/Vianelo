@@ -385,6 +385,7 @@ body{
 
 .floating-cart-btn {
   white-space: nowrap;
+  background-color: var(--vianelo-primary);
   font-size: 13px;
   font-weight: 600;
   border-radius: 999px;
@@ -481,4 +482,11 @@ body{
 .cart-empty-text {
   color: #fff;
   opacity: .85;
+}
+#btn-add{
+  background-color: var(--vianelo-primary) !important;
+  border-color: var(--vianelo-primary) !important;
+  color: #fff !important;
+  font-weight: 600;
+  border-radius: .75rem;
 }

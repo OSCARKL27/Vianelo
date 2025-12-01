@@ -52,7 +52,7 @@ export default function ProductCard({ item }) {
             ${Number(item.price).toFixed(2)} MXN
           </span>
 
-          <Button variant="primary" disabled={agotado} onClick={handleAdd}>
+          <Button id="btn-add" variant="primary" disabled={agotado} onClick={handleAdd}>
             {agotado ? 'No disponible' : 'Agregar'}
           </Button>
         </div>

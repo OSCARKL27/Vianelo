@@ -1,19 +1,41 @@
 import { useState } from 'react'
-import { Button, Card, Col, Container, Row, Table, Alert } from 'react-bootstrap'
+import { Button, Card, Col, Container, Row, Table, Alert, Form } from 'react-bootstrap'
 import { useProducts } from '../hooks/useProducts'
 import ProductEditor from '../components/ProductEditor'
 import InventoryBadge from '../components/InventoryBadge'
 
+// 👇 importa Firestore
+import { doc, updateDoc } from 'firebase/firestore'
+import { db } from '../services/firebase' // ajusta la ruta si tu archivo se llama diferente
+
 export default function AdminDashboard() {
-  const { products, loading, error, createProduct, updateProduct, removeProduct } = useProducts()
+  const {
+    products,
+    loading,
+    error,
+    createProduct,
+    updateProduct,
+    removeProduct
+  } = useProducts()
+
   const [show, setShow] = useState(false)
   const [editing, setEditing] = useState(null)
   const [busy, setBusy] = useState(false)
   const [feedback, setFeedback] = useState(null)
 
-  function openNew() { setEditing(null); setShow(true) }
-  function openEdit(p) { setEditing(p); setShow(true) }
-  function close() { setShow(false) }
+  function openNew() {
+    setEditing(null)
+    setShow(true)
+  }
+
+  function openEdit(p) {
+    setEditing(p)
+    setShow(true)
+  }
+
+  function close() {
+    setShow(false)
+  }
 
   async function handleCreate(data, file) {
     setBusy(true)
@@ -55,6 +77,32 @@ export default function AdminDashboard() {
     }
   }
 
+  // ⭐ Nuevo: marcar / desmarcar como destacado
+  async function handleToggleFeatured(p) {
+    if (busy) return
+    setBusy(true)
+    try {
+      await updateDoc(doc(db, 'products', p.id), {
+        featured: !p.featured,
+      })
+
+      setFeedback({
+        type: 'success',
+        msg: !p.featured
+          ? `“${p.name}” ahora está en Destacados.`
+          : `“${p.name}” se quitó de Destacados.`,
+      })
+    } catch (e) {
+      console.error(e)
+      setFeedback({
+        type: 'danger',
+        msg: 'No se pudo cambiar el estado de destacado.',
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <Container className="py-4 admin-bg min-vh-100">
       <Row className="mb-3 align-items-center">
@@ -65,9 +113,9 @@ export default function AdminDashboard() {
           </p>
         </Col>
         <Col className="text-end">
-          <Button 
-            onClick={openNew} 
-            disabled={busy} 
+          <Button
+            onClick={openNew}
+            disabled={busy}
             className="btn-admin-primary"
           >
             Nuevo producto
@@ -92,7 +140,7 @@ export default function AdminDashboard() {
             <div>Cargando...</div>
           ) : error ? (
             <Alert variant="danger">
-              Ocurrió un error cargando productos. Revisa la consola y tus reglas de Firestore/Storage.
+              Ocurrió un error cargando productos.
             </Alert>
           ) : (
             <Table responsive hover className="admin-table">
@@ -103,6 +151,7 @@ export default function AdminDashboard() {
                   <th>Categoría</th>
                   <th>Precio</th>
                   <th>Inventario</th>
+                  <th>Destacado</th> {/* 👈 nueva columna */}
                   <th>Estado</th>
                   <th className="text-end">Acciones</th>
                 </tr>
@@ -115,20 +164,47 @@ export default function AdminDashboard() {
                         <img
                           src={p.imageUrl}
                           alt={p.name}
-                          style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8 }}
+                          style={{
+                            width: 72,
+                            height: 72,
+                            objectFit: 'cover',
+                            borderRadius: 8,
+                          }}
                           onError={(e) => {
                             console.warn('Imagen no carga, url:', p.imageUrl)
                             e.currentTarget.src = '/placeholder.jpg'
                           }}
                         />
                       ) : (
-                        <div style={{ width: 72, height: 72, background: '#eee', borderRadius: 8 }} />
+                        <div
+                          style={{
+                            width: 72,
+                            height: 72,
+                            background: '#eee',
+                            borderRadius: 8,
+                          }}
+                        />
                       )}
                     </td>
                     <td>{p.name}</td>
                     <td>{p.category || '-'}</td>
                     <td>${Number(p.price).toFixed(2)}</td>
-                    <td><InventoryBadge stock={p.stock} /></td>
+                    <td>
+                      <InventoryBadge stock={p.stock} />
+                    </td>
+
+                    {/* ⭐ Toggle de Destacados */}
+                    <td>
+                      <Form.Check
+                        type="switch"
+                        id={`featured-${p.id}`}
+                        label={p.featured ? 'Sí' : 'No'}
+                        checked={!!p.featured}
+                        onChange={() => handleToggleFeatured(p)}
+                        disabled={busy}
+                      />
+                    </td>
+
                     <td className="admin-status">
                       {p.isActive ? 'Activo' : 'Oculto'}
                     </td>

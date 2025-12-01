@@ -7,6 +7,8 @@ import MenuPage from './pages/Menu.jsx'
 import LoginPage from './pages/login.jsx'
 import RegisterPage from './pages/register.jsx'
 import Footer from './components/Footer'
+import SucursalesPage from './pages/SucursalesPage.jsx'
+import SucursalOrdersPage from './pages/SucursalOrdersPage.jsx'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 
 import ProtectedRoute from './components/ProtectedRoute'
@@ -32,6 +34,8 @@ export default function App() {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/menu" element={<MenuPage />} />
               <Route path="/cart" element={<CartPage />} />
+              <Route path="/sucursales" element={<SucursalesPage />} />
+              <Route path="/sucursal/:branchId" element={ <ProtectedRoute><SucursalOrdersPage /></ProtectedRoute>}/>
 
               {/* Ruta protegida */}
               <Route

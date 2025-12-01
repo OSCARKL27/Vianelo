@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '../services/firebase';
+import { auth, db } from '../services/firebase';
 import { Link, useNavigate } from 'react-router-dom';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export default function Login() { 
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -11,6 +12,7 @@ export default function Login() {
   const [authError, setAuthError] = useState('');
   const navigate = useNavigate(); 
 
+  // Manejo de inputs
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -18,6 +20,7 @@ export default function Login() {
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
+  // Validar campos básicos
   const validateForm = () => {
     const newErrors = {};
     if (!formData.email) newErrors.email = 'El email es requerido';
@@ -26,6 +29,31 @@ export default function Login() {
     return newErrors;
   };
 
+  // ✔ Redirección según el rol en Firestore (colección roles)
+  async function redirectByRole(user) {
+    try {
+      const snap = await getDoc(doc(db, 'roles', user.uid));
+      const data = snap.data() || {}; // si no existe, usuario es normal
+
+      console.log("ROLE DATA:", data);
+
+      if (data.role === 'admin') {
+        navigate('/admin');
+      } 
+      else if (data.role === 'branch' && data.branchId) {
+        navigate(`/sucursal/${data.branchId}`);
+      } 
+      else {
+        navigate('/'); // usuario normal
+      }
+
+    } catch (err) {
+      console.error('Error leyendo rol del usuario:', err);
+      navigate('/'); 
+    }
+  }
+
+  // ✔ Login con email y contraseña
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     const newErrors = validateForm();
@@ -35,8 +63,11 @@ export default function Login() {
     setAuthError('');
 
     try {
-      await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      navigate('/'); 
+      const cred = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      const user = cred.user;
+
+      await redirectByRole(user); // 👈 redirige según rol
+
     } catch (error) {
       console.error('Error al iniciar sesión:', error);
       switch (error.code) {
@@ -60,14 +91,29 @@ export default function Login() {
     }
   };
 
+  // ✔ Login con Google (opcional)
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setAuthError('');
 
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      navigate('/'); 
+      const cred = await signInWithPopup(auth, provider);
+      const user = cred.user;
+
+      // Crear doc en roles si no existe
+      const ref = doc(db, 'roles', user.uid);
+      const snap = await getDoc(ref);
+
+      if (!snap.exists()) {
+        await setDoc(ref, {
+          role: 'user',
+          createdAt: new Date(),
+        });
+      }
+
+      await redirectByRole(user);
+
     } catch (error) {
       console.error('Error con Google:', error);
       setAuthError('Error al iniciar sesión con Google');
@@ -101,8 +147,10 @@ export default function Login() {
                     isInvalid={!!errors.email}
                     placeholder="Correo electrónico"
                   />
-                  <Form.Control.Feedback type="invalid">{errors.email}</Form.Control.Feedback>
                 </Form.Group>
+                <Form.Control.Feedback type="invalid">
+                  {errors.email}
+                </Form.Control.Feedback>
 
                 <Form.Group className="mb-4">
                   <Form.Label>Contraseña</Form.Label>
@@ -114,7 +162,9 @@ export default function Login() {
                     isInvalid={!!errors.password}
                     placeholder="Contraseña"
                   />
-                  <Form.Control.Feedback type="invalid">{errors.password}</Form.Control.Feedback>
+                  <Form.Control.Feedback type="invalid">
+                    {errors.password}
+                  </Form.Control.Feedback>
                 </Form.Group>
 
                 <Button 
