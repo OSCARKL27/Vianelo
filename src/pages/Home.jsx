@@ -2,6 +2,7 @@ import React from 'react'
 import { Container, Row, Col, Button } from 'react-bootstrap'
 import ProductCard from '../components/ProductCard'
 import { useProducts } from '../hooks/useProducts'
+import { NavLink } from 'react-router-dom'
 
 export default function Home() {
   const { products, loading } = useProducts()
@@ -51,14 +52,15 @@ export default function Home() {
 
       {/* 🔘 Botón debajo de destacados */}
       <div className="text-center mt-4">
+    <NavLink to="/menu" className="text-decoration-none">
         <Button
-          href="/menu"     // si usas NavLink me dices y te lo cambio
           variant="outline-light"
           size="lg"
           className="px-4"
         >
           Ver menú completo
         </Button>
+      </NavLink>
       </div>
 
    </Container>
