@@ -1,3 +1,4 @@
+// src/pages/SucursalOrdersPage.jsx
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
@@ -22,6 +23,7 @@ import {
 import { db } from '../services/firebase'
 
 const STATUS_LABELS = {
+  pending: 'Enviado',            // 👈 tratamos pending como “Enviado”
   enviado: 'Enviado',
   recibido: 'En preparación',
   listo: 'Listo para entregar',
@@ -29,6 +31,7 @@ const STATUS_LABELS = {
 }
 
 const STATUS_VARIANT = {
+  pending: 'secondary',          // 👈 mismo estilo que enviado
   enviado: 'secondary',
   recibido: 'info',
   listo: 'success',
@@ -43,11 +46,12 @@ export default function SucursalOrdersPage() {
 
   // 🔄 Escuchar órdenes de esta sucursal en tiempo real
   useEffect(() => {
-    if (!branchId) return
+    const cleanBranchId = (branchId || '').trim()
+    if (!cleanBranchId) return
 
     const q = query(
       collection(db, 'orders'),
-      where('branch', '==', branchId),
+      where('branchId', '==', cleanBranchId),   // 👈 campo correcto
       orderBy('createdAt', 'asc')
     )
 
@@ -99,12 +103,16 @@ export default function SucursalOrdersPage() {
     }
   }
 
+  // Nombre bonito de la sucursal
+  const cleanBranchId = (branchId || '').trim()
   const titleBranch =
-    branchId === 'quintas'
+    cleanBranchId === 'quintas'
       ? 'Vianelo Quintas'
-      : branchId === 'tres-rios'
+      : cleanBranchId === 'tres-rios'
       ? 'Vianelo Tres Ríos'
-      : branchId
+      : cleanBranchId === 'chapule'
+      ? 'Vianelo Chapule'
+      : cleanBranchId || 'Sucursal'
 
   return (
     <Container className="py-4 min-vh-100">
@@ -152,10 +160,13 @@ export default function SucursalOrdersPage() {
                   </div>
 
                   <div className="mt-auto d-flex justify-content-between align-items-center pt-2">
-                    <strong>Total: ${Number(order.total || 0).toFixed(2)}</strong>
+                    <strong>
+                      Total: ${Number(order.total || 0).toFixed(2)}
+                    </strong>
 
                     <div className="d-flex gap-2">
-                      {order.status === 'enviado' && (
+                      {(order.status === 'enviado' ||
+                        order.status === 'pending') && (
                         <Button
                           size="sm"
                           variant="outline-primary"
