@@ -10,6 +10,9 @@ import Footer from './components/Footer'
 import SucursalesPage from './pages/SucursalesPage.jsx'
 import SucursalOrdersPage from './pages/SucursalOrdersPage.jsx'
 import 'bootstrap-icons/font/bootstrap-icons.css'
+import OrderSuccessPage from './pages/OrderSuccessPage.jsx'
+import MyOrdersPage from './pages/MyOrdersPage.jsx'
+
 
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
@@ -36,6 +39,8 @@ export default function App() {
               <Route path="/cart" element={<CartPage />} />
               <Route path="/sucursales" element={<SucursalesPage />} />
               <Route path="/sucursal/:branchId" element={ <ProtectedRoute><SucursalOrdersPage /></ProtectedRoute>}/>
+              <Route path="/pedido-exitoso/:orderId" element={<OrderSuccessPage />} />
+              <Route path="/mis-pedidos" element={<MyOrdersPage />} />
 
               {/* Ruta protegida */}
               <Route

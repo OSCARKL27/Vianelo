@@ -1,14 +1,25 @@
 // src/pages/CartPage.jsx
 import React, { useState } from 'react'
-import { Container, Table, Button, Card, Form, Alert } from 'react-bootstrap'
+import {
+  Container,
+  Table,
+  Button,
+  Card,
+  Form,
+  Alert,
+} from 'react-bootstrap'
 import { useCart } from '../context/CartContext'
-import { db } from '../services/firebase' // ajusta la ruta si tu archivo se llama distinto
+import { db } from '../services/firebase' // 👈 ajusta si tu archivo tiene otro nombre/ruta
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { useNavigate } from 'react-router-dom'
+import { getAuth } from 'firebase/auth'
 
-// 🔹 Sucursales disponibles (usa los mismos branchId que en "roles")
+// 🔹 Sucursales disponibles (usar los mismos branchId que usas en roles / sucursal)
 const BRANCHES = [
-  { id: 'chapule', label: 'Sucursal Chapule' },
-  { id: 'quintas', label: 'Sucursal Quintas' },
+  { id: 'chapule', label: 'Vianelo Chapule' },
+  { id: 'quintas', label: 'Vianelo Quintas' },
+  { id: 'tres-rios', label: 'Vianelo Tres Ríos' },
+  // agrega más si tienes otras sucursales
 ]
 
 export default function CartPage() {
@@ -26,15 +37,22 @@ export default function CartPage() {
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
 
+  const navigate = useNavigate()
+  const auth = getAuth()
+
+  // 👉 Carrito vacío
   if (items.length === 0) {
     return (
       <Container className="cart-page min-vh-100 d-flex flex-column align-items-center justify-content-center text-center">
         <h3 className="cart-empty-title">Tu carrito está vacío 🛒</h3>
-        <p className="cart-empty-text">Agrega productos desde el menú o los destacados.</p>
+        <p className="cart-empty-text">
+          Agrega productos desde el menú o los destacados.
+        </p>
       </Container>
     )
   }
 
+  // 👉 Proceder al pago / crear pedido
   const handlePay = async () => {
     setErrorMsg('')
     setSuccessMsg('')
@@ -44,11 +62,19 @@ export default function CartPage() {
       return
     }
 
+    const user = auth.currentUser
+    if (!user) {
+      setErrorMsg('Debes iniciar sesión para hacer un pedido.')
+      return
+    }
+
     setSavingOrder(true)
     try {
+      const cleanBranchId = selectedBranchId.trim()
+
       const orderData = {
-        branchId: selectedBranchId, // ✅ el mismo branchId que tienes en roles
-        items: items.map(it => ({
+        branchId: cleanBranchId, // 👈 se usa en SucursalOrdersPage
+        items: items.map((it) => ({
           productId: it.id,
           name: it.name,
           qty: it.qty,
@@ -57,17 +83,26 @@ export default function CartPage() {
           imageUrl: it.imageUrl || null,
         })),
         total,
-        status: 'pending',
+        status: 'enviado', // 👈 para que la sucursal pueda marcar "recibido"
         createdAt: serverTimestamp(),
+        userId: user.uid,
+        userName: user.displayName || '',
+        userEmail: user.email || '',
       }
 
-      await addDoc(collection(db, 'orders'), orderData)
+      const docRef = await addDoc(collection(db, 'orders'), orderData)
 
-      setSuccessMsg('Tu pedido se registró correctamente 🎉')
       clearCart()
+      // Opcional: mensaje local
+      setSuccessMsg('Tu pedido se registró correctamente 🎉')
+
+      // Redirigir a pantalla de éxito
+      navigate(`/pedido-exitoso/${docRef.id}`)
     } catch (err) {
       console.error('Error creando pedido', err)
-      setErrorMsg('Ocurrió un problema al registrar tu pedido. Intenta nuevamente.')
+      setErrorMsg(
+        'Ocurrió un problema al registrar tu pedido. Intenta nuevamente.'
+      )
     } finally {
       setSavingOrder(false)
     }
@@ -149,12 +184,13 @@ export default function CartPage() {
               </tbody>
             </Table>
 
-            {/* 🔹 Selector de sucursal por branchId */}
+            {/* 🔹 Selector de sucursal */}
             <Form.Group className="mb-3">
               <Form.Label>¿A qué sucursal quieres enviar tu pedido?</Form.Label>
               <Form.Select
                 value={selectedBranchId}
                 onChange={(e) => setSelectedBranchId(e.target.value)}
+                disabled={savingOrder}
               >
                 <option value="">Selecciona una sucursal</option>
                 {BRANCHES.map((b) => (

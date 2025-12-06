@@ -24,6 +24,9 @@ export default function AppNavbar() {
             <Nav.Link as={Link} to="/sucursales">Sucursales</Nav.Link>
             <Nav.Link href="https://wa.me/5216671234567?text=Hola%20me%20interesa%20tu%20servicio"
               target="_blank">Contacto</Nav.Link>
+            <Nav.Link as={Link} to="/mis-pedidos">Mis Pedidos</Nav.Link>
+            <Nav.Link as={Link} to="/cart">Carrito 🛒</Nav.Link>
+          
             
 
             {/* ✅ Si el usuario es admin, mostramos el acceso al panel */}
