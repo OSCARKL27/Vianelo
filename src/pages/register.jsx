@@ -98,7 +98,7 @@ export default function Register() {
             <Card.Body className="p-5">
              <div className="text-center mb-4">
              <h2 className="fw-bold" style={{ color: "#E65847" }}>Crear Cuenta</h2>
-            <p style={{ color: "#E65847" }}>Únete a nuestra comunidad</p>
+             <p style={{ color: "#333" }}>Únete a nuestra comunidad</p>
              </div>
 
               
@@ -169,28 +169,31 @@ export default function Register() {
                   <Form.Control.Feedback type="invalid">{errors.confirmPassword}</Form.Control.Feedback>
                 </Form.Group>
 
-                <Button
-                  variant="primary"
-                  type="submit"
-                  className="w-100 py-2 mb-3 rounded-3"
-                  disabled={isLoading}
+               <Button
+                variant="primary"
+                type="submit"
+                className="w-100 py-2 mb-3 rounded-3"
+                style={{ backgroundColor: "#333", borderColor: "#333", color: "white" }}
+                disabled={isLoading}
                 >
-                  {isLoading ? (
-                    <>
-                      <Spinner as="span" animation="border" size="sm" className="me-2" /> Creando cuenta...
-                    </>
-                  ) : (
-                    'Crear Cuenta'
-                  )}
-                </Button>
+                {isLoading ? (
+                 <>
+                <Spinner as="span" animation="border" size="sm" className="me-2" /> Creando cuenta...
+                </>
+                 ) : (
+                'Crear Cuenta'
+                   )}
+              </Button>
+
               </Form>
 
               <div className="text-center">
                 <p className="mb-0">
                   ¿Ya tienes cuenta?{' '}
-                  <Link to="/login" className="text-decoration-none fw-semibold text-primary">
-                    Inicia sesión aquí
+                  <Link to="/login" className="text-decoration-none fw-semibold" style={{ color: "#333" }}>
+                   Inicia sesión aquí
                   </Link>
+
                 </p>
               </div>
             </Card.Body>
