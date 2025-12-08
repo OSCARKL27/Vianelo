@@ -96,10 +96,11 @@ export default function Register() {
         <Col xs={12} sm={8} md={6} lg={4}>
           <Card className="shadow-lg border-0 rounded-4">
             <Card.Body className="p-5">
-              <div className="text-center mb-4">
-                <h2 className="fw-bold text-primary">Crear Cuenta</h2>
-                <p className="text-muted">Únete a nuestra comunidad</p>
-              </div>
+             <div className="text-center mb-4">
+             <h2 className="fw-bold" style={{ color: "#E65847 !important" }}>Crear Cuenta</h2>
+             <p style={{ color: "#E65847 !important" }}>Únete a nuestra comunidad</p>
+             </div>
+
 
               {authError && <Alert variant="danger">{authError}</Alert>}
 
