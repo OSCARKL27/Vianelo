@@ -76,7 +76,7 @@ export default function Register() {
         text: 'Tu cuenta ha sido creada con éxito.',
         confirmButtonColor: '#007bff',
         confirmButtonText: 'Ir al inicio',
-        background: '#fefefe',
+        background: '##E65847',
         color: '#333',
         customClass: { popup: 'rounded-4 shadow-lg' }
       }).then(() => {
