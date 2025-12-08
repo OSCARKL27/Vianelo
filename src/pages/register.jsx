@@ -173,7 +173,7 @@ export default function Register() {
                 variant="primary"
                 type="submit"
                 className="w-100 py-2 mb-3 rounded-3"
-                style={{ backgroundColor: "#333", borderColor: "#E65847", color: "white" }}
+                style={{ backgroundColor: "#E65847", borderColor: "#E65847", color: "white" }}
                 disabled={isLoading}
                 >
                 {isLoading ? (
