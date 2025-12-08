@@ -173,7 +173,7 @@ export default function Register() {
                 variant="primary"
                 type="submit"
                 className="w-100 py-2 mb-3 rounded-3"
-                style={{ backgroundColor: "#333", borderColor: "#333", color: "white" }}
+                style={{ backgroundColor: "#333", borderColor: "#E65847", color: "white" }}
                 disabled={isLoading}
                 >
                 {isLoading ? (
@@ -190,7 +190,7 @@ export default function Register() {
               <div className="text-center">
                 <p className="mb-0">
                   ¿Ya tienes cuenta?{' '}
-                  <Link to="/login" className="text-decoration-none fw-semibold" style={{ color: "#333" }}>
+                  <Link to="/login" className="text-decoration-none fw-semibold" style={{ color: "#E65847" }}>
                    Inicia sesión aquí
                   </Link>
 
