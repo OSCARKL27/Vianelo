@@ -97,11 +97,11 @@ export default function Register() {
           <Card className="shadow-lg border-0 rounded-4">
             <Card.Body className="p-5">
              <div className="text-center mb-4">
-             <h2 className="fw-bold" style={{ color: "#E65847 !important" }}>Crear Cuenta</h2>
-             <p style={{ color: "#E65847 !important" }}>Únete a nuestra comunidad</p>
+             <h2 className="fw-bold" style={{ color: "#E65847" }}>Crear Cuenta</h2>
+            <p style={{ color: "#E65847" }}>Únete a nuestra comunidad</p>
              </div>
 
-
+              
               {authError && <Alert variant="danger">{authError}</Alert>}
 
               <Form onSubmit={handleEmailRegister}>
