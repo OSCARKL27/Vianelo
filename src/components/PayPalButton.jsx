@@ -6,8 +6,11 @@ export default function PayPalButton({ total, onSuccess, disabled }) {
   return (
     <PayPalButtons
       style={{ layout: 'vertical' }}
-      createOrder={(data, actions) =>
-        actions.order.create({
+
+      // 🔹 Crear la orden
+      createOrder={(data, actions) => {
+        console.log('Creando orden PayPal...')
+        return actions.order.create({
           purchase_units: [
             {
               amount: {
@@ -16,14 +19,34 @@ export default function PayPalButton({ total, onSuccess, disabled }) {
             },
           ],
         })
-      }
-      onApprove={async (data, actions) => {
-        const details = await actions.order.capture()
-        onSuccess(details)
       }}
+
+      // 🔹 Aprobar y CAPTURAR el pago
+      onApprove={async (data, actions) => {
+        try {
+          console.log('Orden aprobada:', data)
+
+          const details = await actions.order.capture()
+
+          console.log('Pago capturado:', details)
+
+          if (details.status === 'COMPLETED') {
+            alert('Pago COMPLETADO en Sandbox ✅')
+            onSuccess(details)
+          } else {
+            console.error('Pago NO completado:', details)
+            alert('El pago no se completó correctamente')
+          }
+        } catch (err) {
+          console.error('Error capturando el pago:', err)
+          alert('Error al capturar el pago')
+        }
+      }}
+
+      // 🔹 Error general de PayPal
       onError={(err) => {
-        console.error('Error en PayPal', err)
-        alert('Ocurrió un error con el pago')
+        console.error('Error en PayPal:', err)
+        alert('Ocurrió un error con PayPal')
       }}
     />
   )

@@ -1,4 +1,3 @@
-// src/pages/CartPage.jsx
 import React, { useState } from 'react'
 import {
   Container,
@@ -9,17 +8,17 @@ import {
   Alert,
 } from 'react-bootstrap'
 import { useCart } from '../context/CartContext'
-import { db } from '../services/firebase' // 👈 ajusta si tu archivo tiene otro nombre/ruta
+import { db } from '../services/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { useNavigate } from 'react-router-dom'
 import { getAuth } from 'firebase/auth'
+import PayPalButton from '../components/PayPalButton'
 
-// 🔹 Sucursales disponibles (usar los mismos branchId que usas en roles / sucursal)
+// 🔹 Sucursales disponibles
 const BRANCHES = [
   { id: 'chapule', label: 'Vianelo Chapule' },
   { id: 'quintas', label: 'Vianelo Quintas' },
   { id: 'tres-rios', label: 'Vianelo Tres Ríos' },
-  // agrega más si tienes otras sucursales
 ]
 
 export default function CartPage() {
@@ -35,7 +34,6 @@ export default function CartPage() {
   const [selectedBranchId, setSelectedBranchId] = useState('')
   const [savingOrder, setSavingOrder] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
-  const [successMsg, setSuccessMsg] = useState('')
 
   const navigate = useNavigate()
   const auth = getAuth()
@@ -44,18 +42,15 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <Container className="cart-page min-vh-100 d-flex flex-column align-items-center justify-content-center text-center">
-        <h3 className="cart-empty-title">Tu carrito está vacío 🛒</h3>
-        <p className="cart-empty-text">
-          Agrega productos desde el menú o los destacados.
-        </p>
+        <h3>Tu carrito está vacío 🛒</h3>
+        <p>Agrega productos desde el menú.</p>
       </Container>
     )
   }
 
-  // 👉 Proceder al pago / crear pedido
-  const handlePay = async () => {
+  // 👉 Se ejecuta SOLO cuando PayPal aprueba el pago
+  const handlePaySuccess = async (paymentDetails) => {
     setErrorMsg('')
-    setSuccessMsg('')
 
     if (!selectedBranchId) {
       setErrorMsg('Selecciona una sucursal para enviar tu pedido.')
@@ -69,11 +64,10 @@ export default function CartPage() {
     }
 
     setSavingOrder(true)
-    try {
-      const cleanBranchId = selectedBranchId.trim()
 
+    try {
       const orderData = {
-        branchId: cleanBranchId, // 👈 se usa en SucursalOrdersPage
+        branchId: selectedBranchId.trim(),
         items: items.map((it) => ({
           productId: it.id,
           name: it.name,
@@ -83,7 +77,8 @@ export default function CartPage() {
           imageUrl: it.imageUrl || null,
         })),
         total,
-        status: 'enviado', // 👈 para que la sucursal pueda marcar "recibido"
+        status: 'pagado',
+        paypalOrderId: paymentDetails.id,
         createdAt: serverTimestamp(),
         userId: user.uid,
         userName: user.displayName || '',
@@ -93,13 +88,9 @@ export default function CartPage() {
       const docRef = await addDoc(collection(db, 'orders'), orderData)
 
       clearCart()
-      // Opcional: mensaje local
-      setSuccessMsg('Tu pedido se registró correctamente 🎉')
-
-      // Redirigir a pantalla de éxito
       navigate(`/pedido-exitoso/${docRef.id}`)
     } catch (err) {
-      console.error('Error creando pedido', err)
+      console.error(err)
       setErrorMsg(
         'Ocurrió un problema al registrar tu pedido. Intenta nuevamente.'
       )
@@ -110,122 +101,97 @@ export default function CartPage() {
 
   return (
     <Container className="cart-page min-vh-100">
-      <div className="cart-inner">
-        <h2 className="cart-title mb-4">Tu carrito</h2>
+      <h2 className="mb-4">Tu carrito</h2>
 
-        <Card className="cart-card shadow-sm">
-          <Card.Body>
-            {errorMsg && (
-              <Alert variant="danger" className="mb-3">
-                {errorMsg}
-              </Alert>
-            )}
-            {successMsg && (
-              <Alert variant="success" className="mb-3">
-                {successMsg}
-              </Alert>
-            )}
+      <Card className="shadow-sm">
+        <Card.Body>
+          {errorMsg && <Alert variant="danger">{errorMsg}</Alert>}
 
-            <Table responsive hover className="mb-4 cart-table">
-              <thead>
-                <tr>
-                  <th>Producto</th>
-                  <th>Precio</th>
-                  <th>Cantidad</th>
-                  <th>Total</th>
-                  <th></th>
+          <Table responsive hover className="mb-4">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Precio</th>
+                <th>Cantidad</th>
+                <th>Total</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((it) => (
+                <tr key={it.id}>
+                  <td>{it.name}</td>
+                  <td>${it.price.toFixed(2)}</td>
+                  <td>
+                    <Button
+                      size="sm"
+                      variant="outline-secondary"
+                      onClick={() => decreaseQty(it.id)}
+                    >
+                      −
+                    </Button>{' '}
+                    {it.qty}{' '}
+                    <Button
+                      size="sm"
+                      variant="outline-secondary"
+                      onClick={() => increaseQty(it.id)}
+                    >
+                      +
+                    </Button>
+                  </td>
+                  <td>${(it.price * it.qty).toFixed(2)}</td>
+                  <td>
+                    <Button
+                      size="sm"
+                      variant="outline-danger"
+                      onClick={() => removeFromCart(it.id)}
+                    >
+                      ✕
+                    </Button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {items.map((it) => (
-                  <tr key={it.id}>
-                    <td>
-                      <div className="d-flex align-items-center">
-                        <img
-                          src={it.imageUrl || '/placeholder.jpg'}
-                          alt={it.name}
-                          className="cart-img me-3"
-                        />
-                        {it.name}
-                      </div>
-                    </td>
-                    <td>${it.price.toFixed(2)}</td>
-                    <td>
-                      <div className="d-flex align-items-center gap-2">
-                        <Button
-                          variant="outline-secondary"
-                          size="sm"
-                          onClick={() => decreaseQty(it.id)}
-                        >
-                          −
-                        </Button>
-                        <span>{it.qty}</span>
-                        <Button
-                          variant="outline-secondary"
-                          size="sm"
-                          onClick={() => increaseQty(it.id)}
-                        >
-                          +
-                        </Button>
-                      </div>
-                    </td>
-                    <td>${(it.price * it.qty).toFixed(2)}</td>
-                    <td className="text-end">
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => removeFromCart(it.id)}
-                      >
-                        ✕
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
+              ))}
+            </tbody>
+          </Table>
 
-            {/* 🔹 Selector de sucursal */}
-            <Form.Group className="mb-3">
-              <Form.Label>¿A qué sucursal quieres enviar tu pedido?</Form.Label>
-              <Form.Select
-                value={selectedBranchId}
-                onChange={(e) => setSelectedBranchId(e.target.value)}
-                disabled={savingOrder}
-              >
-                <option value="">Selecciona una sucursal</option>
-                {BRANCHES.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.label}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
+          {/* 🔹 Selector de sucursal */}
+          <Form.Group className="mb-3">
+            <Form.Label>Selecciona la sucursal</Form.Label>
+            <Form.Select
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
+              disabled={savingOrder}
+            >
+              <option value="">Selecciona una sucursal</option>
+              {BRANCHES.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.label}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
 
-            <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
-              <div className="cart-total mb-3 mb-md-0">
-                Total: <span>${total.toFixed(2)}</span>
-              </div>
-              <div className="d-flex gap-2">
-                <Button
-                  variant="outline-secondary"
-                  onClick={clearCart}
-                  className="btn-cart-secondary"
-                  disabled={savingOrder}
-                >
-                  Vaciar carrito
-                </Button>
-                <Button
-                  className="btn-cart-primary"
-                  onClick={handlePay}
-                  disabled={savingOrder}
-                >
-                  {savingOrder ? 'Registrando pedido...' : 'Proceder al pago'}
-                </Button>
-              </div>
-            </div>
-          </Card.Body>
-        </Card>
-      </div>
+          <div className="d-flex justify-content-between align-items-center">
+            <strong>Total: ${total.toFixed(2)}</strong>
+            <Button
+              variant="outline-secondary"
+              onClick={clearCart}
+              disabled={savingOrder}
+            >
+              Vaciar carrito
+            </Button>
+          </div>
+
+          {/* 🔥 PAYPAL SANDBOX */}
+          <div className="mt-4">
+            <PayPalButton
+              total={total}
+              disabled={savingOrder || !selectedBranchId}
+              onSuccess={handlePaySuccess}
+            />
+          </div>
+        </Card.Body>
+      </Card>
     </Container>
   )
 }
