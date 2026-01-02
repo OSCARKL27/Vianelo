@@ -1,4 +1,3 @@
-// src/pages/CartPage.jsx
 import React, { useState } from 'react'
 import {
   Container,
@@ -35,7 +34,6 @@ export default function CartPage() {
   const [selectedBranchId, setSelectedBranchId] = useState('')
   const [savingOrder, setSavingOrder] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
-  const [successMsg, setSuccessMsg] = useState('')
 
   const navigate = useNavigate()
   const auth = getAuth()
@@ -53,7 +51,6 @@ export default function CartPage() {
   // 👉 Guardar pedido DESPUÉS del pago
   const handleSaveOrder = async (paypalDetails) => {
     setErrorMsg('')
-    setSuccessMsg('')
 
     if (!selectedBranchId) {
       setErrorMsg('Selecciona una sucursal para enviar tu pedido.')
