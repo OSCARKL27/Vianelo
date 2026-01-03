@@ -1,0 +1,492 @@
+:root{
+  --vianelo-primary: #E65847;
+  --vianelo-accent1: #E6C7F9;
+  --vianelo-accent2: #822793;
+  --vianelo-dark: #132D2E;
+  --vianelo-bg: #E65847;
+  --font-display: 'Collier', Georgia, 'Times New Roman', serif;
+  --font-body: 'Darwin', 'Poppins', 'Inter', sans-serif;
+}
+
+/* ==========================
+   BODY Y TIPOGRAFÍA
+   ========================== */
+body{
+  font-family: var(--font-body);
+  color: var(--vianelo-dark);
+  background: var(--vianelo-bg);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* ==========================
+   NAVBAR / BRAND
+   ========================== */
+.brand-title{
+  font-family: var(--font-display);
+  color: var(--vianelo-dark);
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+
+.navbar {
+  background: var(--vianelo-accent1) !important; /* morado */
+}
+
+/* Cambiar texto de toda la barra */
+.navbar,
+.navbar .nav-link,
+.navbar .navbar-brand,
+.navbar .nav-link:visited {
+  color: var(--vianelo-primary) !important;
+}
+
+/* Hover de links */
+.navbar .nav-link:hover {
+  color: #fff !important;
+}
+
+/* Botón de cerrar sesión y botón de login */
+.navbar .btn {
+  color: var(--vianelo-primary) !important;
+  border-color: var(--vianelo-primary) !important;
+}
+
+/* Nombre del usuario (avatar de saludo) */
+.navbar span {
+  color: var(--vianelo-dark) !important;
+}
+
+.navbar .btn:hover {
+  background-color: rgba(255,255,255,0.2) !important;
+  color: white !important;
+}
+
+/* ==========================
+   LOGIN
+   ========================== */
+/* Fondo general del login */
+.login-bg {
+  background-color: var(--vianelo-bg); /* #E65847 */
+}
+
+/* Tarjeta del login */
+.login-card {
+  background-color: white;
+  border-radius: 1.2rem;
+  min-height: 480px; /* evita que se mueva */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Título “Iniciar Sesión” */
+.login-title {
+  color: var(--vianelo-primary) !important; /* rojo Vianelo */
+  font-family: var(--font-display);
+  letter-spacing: -0.5px;
+}
+
+/* Texto “Bienvenido de vuelta” */
+.login-subtitle {
+  color: var(--vianelo-dark) !important; /* tu color oscuro */
+  opacity: .8;
+}
+
+/* Labels del formulario */
+.login-card label {
+  color: var(--vianelo-dark) !important;
+  font-weight: 600;
+}
+
+/* Placeholder (gris suave) */
+.login-card input::placeholder {
+  color: #999 !important;
+}
+
+/* Link “Regístrate aquí” */
+.login-link {
+  color: var(--vianelo-primary) !important;
+  font-weight: 600;
+}
+
+/* Botón principal */
+.btn-login {
+  background-color: var(--vianelo-primary) !important;
+  border-color: var(--vianelo-primary) !important;
+  color: white !important;
+  font-weight: 600;
+}
+
+/* Botón hover */
+.btn-login:hover {
+  background-color: #cf4d40 !important;
+}
+
+/* Botón Google más bonito */
+.btn-google {
+  font-weight: 600;
+  border-width: 2px;
+}
+
+/* Centrado del texto “o” */
+.divider-text {
+  color: var(--vianelo-dark);
+  opacity: .7;
+}
+
+/* ==========================
+   PANEL ADMIN
+   ========================== */
+/* Fondo general del panel admin */
+.admin-bg {
+  background: #f9f5fb; /* suave */
+}
+
+/* Título del panel */
+.admin-title {
+  font-family: var(--font-display);
+  color: var(--vianelo-dark);
+  letter-spacing: -0.03em;
+}
+
+/* Subtítulo */
+.admin-subtitle {
+  color: var(--vianelo-dark);
+  opacity: .7;
+}
+
+/* Tarjeta principal del panel */
+.admin-card {
+  border-radius: 1.2rem;
+  border: none;
+  background-color: #ffffff;
+}
+
+/* Botón “Nuevo producto” */
+.btn-admin-primary {
+  background-color: var(--vianelo-primary) !important;
+  border-color: var(--vianelo-primary) !important;
+  color: #fff !important;
+  font-weight: 600;
+  border-radius: 999px;
+  padding-inline: 1.5rem;
+}
+
+.btn-admin-primary:hover {
+  background-color: #cf4d40 !important;
+}
+
+/* Botones de acciones de tabla */
+.btn-admin-secondary,
+.btn-admin-danger {
+  font-weight: 500;
+  border-radius: .75rem;
+}
+
+/* Tabla de administración */
+.admin-table thead {
+  background-color: var(--vianelo-dark);
+  color: #fff;
+}
+
+.admin-table thead th {
+  border-bottom: none;
+}
+
+.admin-table tbody tr:hover {
+  background-color: rgba(230, 88, 71, 0.04);
+}
+
+/* Estado Activo / Oculto */
+.admin-status {
+  font-weight: 600;
+}
+
+.admin-status::before {
+  content: '● ';
+  font-size: 0.75rem;
+}
+
+/* ==========================
+   HERO HOME
+   ========================== */
+.hero {
+  background:
+    linear-gradient(0deg, rgba(0,0,0,0.25), rgba(0,0,0,0.25)),
+    url('/public/hero1.jpg') left/33% no-repeat,
+    url('/public/hero2.jpg') center/33% no-repeat,
+    url('/public/hero3.jpg') right/33% no-repeat;
+  min-height: 480px;
+  display: flex;
+  align-items: center;
+  color: white;
+  text-align: center;
+  background-color: #000; /* color de respaldo */
+}
+
+.hero .lead {
+  opacity:0.95;
+}
+
+/* Botón principal del brand */
+.btn-vianelo{
+  background: var(--vianelo-primary);
+  border-color: var(--vianelo-primary);
+  color: white;
+  border-radius: .75rem;
+  font-weight: 600;
+}
+
+/* Títulos de sección */
+.section-title{
+  color:var(--vianelo-dark);
+  font-family:var(--font-display);
+  margin-bottom:1rem;
+}
+
+/* Precio destacado en tarjetas */
+.card .price{
+  color:var(--vianelo-primary);
+  font-weight:700;
+}
+
+/* Footer */
+.footer{
+  background:var(--vianelo-dark);
+  color:white;
+  padding:2rem 0;
+}
+
+/* Hero más compacto en móvil */
+@media(max-width:576px){
+  .hero{
+    min-height:300px;
+    padding:2rem 1rem;
+  }
+}
+
+/* ==========================
+   TARJETAS DE PRODUCTO (MENÚ)
+   ========================== */
+/* Tarjeta más compacta y estética */
+.product-card {
+  border-radius: 1rem;
+  border: none;
+  background: #ffffff;
+  padding: 0.85rem;
+  transition: transform .18s ease, box-shadow .18s ease;
+  max-width: 320px;       /* tamaño máximo por tarjeta */
+  margin: 0 auto 1.5rem;  /* centrada y con espacio inferior */
+}
+
+/* Hover sutil */
+.product-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(0,0,0,.08);
+}
+
+/* Pequeña animación cuando se presiona */
+.product-card.press {
+  transform: scale(.97);
+}
+
+/* Imagen del producto cuadrada y profesional */
+.product-card .product-img {
+  width: 100%;
+  aspect-ratio: 1 / 1;        /* cuadrada SIEMPRE */
+  object-fit: cover;          /* recorta estilo profesional */
+  border-radius: 14px;        /* bordes bonitos */
+  background-color: #f8f8f8;  /* evita parpadeo mientras carga */
+  transition: transform .35s ease;
+}
+
+/* Zoom muy suave en hover */
+.product-card:hover .product-img {
+  transform: scale(1.04);
+}
+
+/* Ajuste del badge “Agotado” */
+.product-card .badge.bg-danger {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+/* ==========================
+   CARRITO FLOTANTE FIJO
+   ========================== */
+.floating-cart {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #ffffff;
+  padding: 12px 16px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.20);
+  z-index: 2000;
+  max-width: 340px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  animation: floating-cart-in 0.25s ease-out;
+}
+
+/* Animación de entrada suave */
+@keyframes floating-cart-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.floating-cart-left {
+  flex-shrink: 0;
+}
+
+.floating-cart-thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.floating-cart-info {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  line-height: 1.3;
+  flex: 1;
+}
+
+.floating-cart-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: #888;
+}
+
+.floating-cart-items {
+  font-weight: 500;
+  color: #333;
+}
+
+.floating-cart-total {
+  font-weight: 700;
+  color: #222;
+  margin-top: 2px;
+}
+
+.floating-cart-btn {
+  white-space: nowrap;
+  background-color: var(--vianelo-primary);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding-inline: 12px;
+}
+
+/* Ajuste para pantallas pequeñas */
+@media (max-width: 576px) {
+  .floating-cart {
+    left: 10px;
+    right: 10px;
+    bottom: 12px;
+    max-width: none;
+  }
+}
+.cart-page {
+  background-color: var(--vianelo-bg);
+  display: flex;
+  justify-content: center;
+  padding-top: 3rem;
+  padding-bottom: 4rem;
+}
+
+.cart-inner {
+  width: 100%;
+  max-width: 960px;
+}
+
+.cart-title {
+  font-family: var(--font-display);
+  color: var(--vianelo-dark);
+}
+
+.cart-card {
+  border-radius: 1.2rem;
+  border: none;
+  background-color: #fff;
+}
+
+.cart-table thead {
+  background-color: var(--vianelo-dark);
+  color: #fff;
+}
+
+.cart-table thead th {
+  border-bottom: none;
+}
+
+.cart-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.cart-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 0.75rem;
+  object-fit: cover;
+}
+
+.cart-total {
+  font-size: 1.1rem;
+  color: var(--vianelo-dark);
+  font-weight: 600;
+}
+
+.cart-total span {
+  color: var(--vianelo-primary);
+}
+
+.btn-cart-primary {
+  background-color: var(--vianelo-primary) !important;
+  border-color: var(--vianelo-primary) !important;
+  color: #fff !important;
+  font-weight: 600;
+  border-radius: 999px;
+  padding-inline: 1.5rem;
+}
+
+.btn-cart-primary:hover {
+  background-color: #cf4d40 !important;
+}
+
+.btn-cart-secondary {
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+/* Vacío */
+.cart-empty-title {
+  font-family: var(--font-display);
+  color: #fff;
+}
+
+.cart-empty-text {
+  color: #fff;
+  opacity: .85;
+}
+#btn-add{
+  background-color: var(--vianelo-primary) !important;
+  border-color: var(--vianelo-primary) !important;
+  color: #fff !important;
+  font-weight: 600;
+  border-radius: .75rem;
+}
