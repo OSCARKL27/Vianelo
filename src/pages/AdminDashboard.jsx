@@ -1,12 +1,19 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button, Card, Col, Container, Row, Table, Alert, Form } from 'react-bootstrap'
 import { useProducts } from '../hooks/useProducts'
 import ProductEditor from '../components/ProductEditor'
 import InventoryBadge from '../components/InventoryBadge'
 
-// 👇 importa Firestore
-import { doc, updateDoc } from 'firebase/firestore'
-import { db } from '../services/firebase' // ajusta la ruta si tu archivo se llama diferente
+// 👇 Firestore
+import {
+  doc,
+  updateDoc,
+  collection,
+  getDocs,
+  orderBy,
+  query
+} from 'firebase/firestore'
+import { db } from '../services/firebase'
 
 export default function AdminDashboard() {
   const {
@@ -22,6 +29,35 @@ export default function AdminDashboard() {
   const [editing, setEditing] = useState(null)
   const [busy, setBusy] = useState(false)
   const [feedback, setFeedback] = useState(null)
+
+  // ===============================
+  // 📊 REPORTE DE VENTAS (Firestore)
+  // ===============================
+  const [showReport, setShowReport] = useState(false)
+  const [sales, setSales] = useState([])
+  const [loadingSales, setLoadingSales] = useState(false)
+
+  useEffect(() => {
+    async function loadSales() {
+      setLoadingSales(true)
+      try {
+        const q = query(
+          collection(db, 'sales'),
+          orderBy('date', 'desc')
+        )
+        const snap = await getDocs(q)
+        setSales(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoadingSales(false)
+      }
+    }
+
+    if (showReport) {
+      loadSales()
+    }
+  }, [showReport])
 
   function openNew() {
     setEditing(null)
@@ -43,7 +79,7 @@ export default function AdminDashboard() {
       await createProduct(data, file)
       setFeedback({ type: 'success', msg: 'Producto creado correctamente.' })
       close()
-    } catch (e) {
+    } catch {
       setFeedback({ type: 'danger', msg: 'No se pudo crear el producto.' })
     } finally {
       setBusy(false)
@@ -57,7 +93,7 @@ export default function AdminDashboard() {
       await updateProduct(editing.id, data, file, editing.imagePath)
       setFeedback({ type: 'success', msg: 'Producto actualizado.' })
       close()
-    } catch (e) {
+    } catch {
       setFeedback({ type: 'danger', msg: 'No se pudo actualizar el producto.' })
     } finally {
       setBusy(false)
@@ -70,14 +106,14 @@ export default function AdminDashboard() {
     try {
       await removeProduct(p.id, p.imagePath)
       setFeedback({ type: 'success', msg: 'Producto eliminado.' })
-    } catch (e) {
+    } catch {
       setFeedback({ type: 'danger', msg: 'No se pudo eliminar el producto.' })
     } finally {
       setBusy(false)
     }
   }
 
-  // ⭐ Nuevo: marcar / desmarcar como destacado
+  // ⭐ Destacados
   async function handleToggleFeatured(p) {
     if (busy) return
     setBusy(true)
@@ -92,8 +128,7 @@ export default function AdminDashboard() {
           ? `“${p.name}” ahora está en Destacados.`
           : `“${p.name}” se quitó de Destacados.`,
       })
-    } catch (e) {
-      console.error(e)
+    } catch {
       setFeedback({
         type: 'danger',
         msg: 'No se pudo cambiar el estado de destacado.',
@@ -105,6 +140,8 @@ export default function AdminDashboard() {
 
   return (
     <Container className="py-4 admin-bg min-vh-100">
+
+      {/* 🧭 ENCABEZADO */}
       <Row className="mb-3 align-items-center">
         <Col>
           <h2 className="admin-title">Panel de administración</h2>
@@ -116,9 +153,16 @@ export default function AdminDashboard() {
           <Button
             onClick={openNew}
             disabled={busy}
-            className="btn-admin-primary"
+            className="btn-admin-primary me-2"
           >
             Nuevo producto
+          </Button>
+
+          <Button
+            variant="outline-secondary"
+            onClick={() => setShowReport(!showReport)}
+          >
+            {showReport ? 'Ocultar reporte' : 'Ver reporte de ventas'}
           </Button>
         </Col>
       </Row>
@@ -134,6 +178,47 @@ export default function AdminDashboard() {
         </Alert>
       )}
 
+      {/* 📊 REPORTE DE VENTAS */}
+      {showReport && (
+        <Card className="mb-4 shadow-sm">
+          <Card.Body>
+            <h4>Reporte de ventas</h4>
+
+            {loadingSales ? (
+              <p>Cargando ventas...</p>
+            ) : sales.length === 0 ? (
+              <p>No hay ventas registradas.</p>
+            ) : (
+              sales.map(sale => (
+                <div
+                  key={sale.id}
+                  style={{ borderBottom: '1px solid #ddd', marginBottom: 12 }}
+                >
+                  <p>
+                    <strong>Fecha:</strong>{' '}
+                    {sale.date?.toDate
+                      ? sale.date.toDate().toLocaleString()
+                      : ''}
+                  </p>
+                  <p>
+                    <strong>Total:</strong> $
+                    {Number(sale.total).toFixed(2)}
+                  </p>
+                  <ul>
+                    {sale.items.map(item => (
+                      <li key={item.id}>
+                        {item.name} x {item.quantity}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))
+            )}
+          </Card.Body>
+        </Card>
+      )}
+
+      {/* 📦 TABLA DE PRODUCTOS */}
       <Card className="shadow-sm admin-card">
         <Card.Body>
           {loading ? (
@@ -151,7 +236,7 @@ export default function AdminDashboard() {
                   <th>Categoría</th>
                   <th>Precio</th>
                   <th>Inventario</th>
-                  <th>Destacado</th> {/* 👈 nueva columna */}
+                  <th>Destacado</th>
                   <th>Estado</th>
                   <th className="text-end">Acciones</th>
                 </tr>
@@ -169,10 +254,6 @@ export default function AdminDashboard() {
                             height: 72,
                             objectFit: 'cover',
                             borderRadius: 8,
-                          }}
-                          onError={(e) => {
-                            console.warn('Imagen no carga, url:', p.imageUrl)
-                            e.currentTarget.src = '/placeholder.jpg'
                           }}
                         />
                       ) : (
@@ -192,27 +273,21 @@ export default function AdminDashboard() {
                     <td>
                       <InventoryBadge stock={p.stock} />
                     </td>
-
-                    {/* ⭐ Toggle de Destacados */}
                     <td>
                       <Form.Check
                         type="switch"
-                        id={`featured-${p.id}`}
                         label={p.featured ? 'Sí' : 'No'}
                         checked={!!p.featured}
                         onChange={() => handleToggleFeatured(p)}
                         disabled={busy}
                       />
                     </td>
-
-                    <td className="admin-status">
-                      {p.isActive ? 'Activo' : 'Oculto'}
-                    </td>
+                    <td>{p.isActive ? 'Activo' : 'Oculto'}</td>
                     <td className="text-end">
                       <Button
                         size="sm"
                         variant="outline-primary"
-                        className="me-2 btn-admin-secondary"
+                        className="me-2"
                         onClick={() => openEdit(p)}
                         disabled={busy}
                       >
@@ -221,7 +296,6 @@ export default function AdminDashboard() {
                       <Button
                         size="sm"
                         variant="outline-danger"
-                        className="btn-admin-danger"
                         onClick={() => handleDelete(p)}
                         disabled={busy}
                       >
