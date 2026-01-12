@@ -7,7 +7,7 @@ export default defineConfig({
     dedupe: ['react', 'react-dom']
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', '@paypal/react-paypal-js', '@paypal/paypal-js']
+    include: ['react', 'react-dom', '@paypal/react-paypal-js']
   },
   build: {
     commonjsOptions: {
