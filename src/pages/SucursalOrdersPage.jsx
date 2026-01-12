@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   Container,
@@ -39,6 +39,10 @@ const STATUS_VARIANT = {
   entregado: 'dark',
 }
 
+function normalizeStatus(value) {
+  return String(value || 'pending').trim().toLowerCase()
+}
+
 export default function SucursalOrdersPage() {
   const { branchId } = useParams()
   const [orders, setOrders] = useState([])
@@ -57,23 +61,29 @@ export default function SucursalOrdersPage() {
       orderBy('createdAt', 'asc')
     )
 
-    const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-      setOrders(list)
-      setLoading(false)
-    })
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        setOrders(list)
+        setLoading(false)
+      },
+      (err) => {
+        console.error('Error escuchando pedidos', err)
+        setLoading(false)
+      }
+    )
 
     return () => unsub()
   }, [branchId])
 
-  // =========================
   // 🔁 CAMBIOS DE ESTADO
-  // =========================
   async function updateStatus(order, status, extra = {}) {
     setBusyId(order.id)
     try {
       await updateDoc(doc(db, 'orders', order.id), {
         status,
+        updatedAt: serverTimestamp(),
         ...extra,
       })
     } catch (e) {
@@ -84,13 +94,20 @@ export default function SucursalOrdersPage() {
     }
   }
 
-  const activos = orders.filter((o) => o.status !== 'entregado')
-  const entregados = orders.filter((o) => o.status === 'entregado')
+  // ✅ Tabs filtrados por status NORMALIZADO
+  const activos = useMemo(
+    () => orders.filter((o) => normalizeStatus(o.status) !== 'entregado'),
+    [orders]
+  )
+  const entregados = useMemo(
+    () => orders.filter((o) => normalizeStatus(o.status) === 'entregado'),
+    [orders]
+  )
 
   // Nombre bonito de la sucursal
   const cleanBranchId = (branchId || '').trim()
   const titleBranch =
-      cleanBranchId === 'quintas'
+    cleanBranchId === 'quintas'
       ? 'Vianelo Quintas'
       : cleanBranchId === 'chapule'
       ? 'Vianelo Chapule'
@@ -103,99 +120,105 @@ export default function SucursalOrdersPage() {
 
     return (
       <Row className="g-3">
-        {list.map((order) => (
-          <Col md={6} lg={4} key={order.id}>
-            <Card className="h-100">
-              <Card.Body className="d-flex flex-column">
-                <div className="d-flex justify-content-between mb-2">
-                  <div>
-                    <Card.Title className="mb-0">
-                      Pedido #{order.id.slice(-6)}
-                    </Card.Title>
-                    <small className="text-muted">
-                      Cliente: {order.userName || '—'}
-                    </small>
-                  </div>
+        {list.map((order) => {
+          const st = normalizeStatus(order.status) // ✅ status limpio
+          const label = STATUS_LABELS[st] || st
+          const variant = STATUS_VARIANT[st] || 'secondary'
 
-                  <Badge bg={STATUS_VARIANT[order.status]}>
-                    {STATUS_LABELS[order.status]}
-                  </Badge>
-                </div>
+          return (
+            <Col md={6} lg={4} key={order.id}>
+              <Card className="h-100">
+                <Card.Body className="d-flex flex-column">
+                  <div className="d-flex justify-content-between mb-2">
+                    <div>
+                      <Card.Title className="mb-0">
+                        Pedido #{order.id.slice(-6)}
+                      </Card.Title>
+                      <small className="text-muted">
+                        Cliente: {order.userName || '—'}
+                      </small>
 
-                <div className="mb-2">
-                  {order.items?.map((it, i) => (
-                    <div key={i} className="small">
-                      {it.qty}× {it.name}
+                      {/* 🔎 DEBUG (borra después si quieres) */}
+                      <small className="text-muted d-block">
+                        status: {String(order.status)}
+                      </small>
                     </div>
-                  ))}
-                </div>
 
-                <div className="mt-auto d-flex justify-content-between align-items-center">
-                  <strong>
-                    Total: ${Number(order.total || 0).toFixed(2)}
-                  </strong>
-
-                  <div className="d-flex gap-2">
-                    {(order.status === 'enviado' ||
-                      order.status === 'pending') && (
-                      <Button
-                        size="sm"
-                        variant="outline-primary"
-                        disabled={busyId === order.id}
-                        onClick={() =>
-                          updateStatus(order, 'recibido', {
-                            receivedAt: serverTimestamp(),
-                          })
-                        }
-                      >
-                        Pedido recibido
-                      </Button>
-                    )}
-
-                    {order.status === 'recibido' && (
-                      <Button
-                        size="sm"
-                        variant="success"
-                        disabled={busyId === order.id}
-                        onClick={() =>
-                          updateStatus(order, 'listo', {
-                            readyAt: serverTimestamp(),
-                          })
-                        }
-                      >
-                        Pedido listo
-                      </Button>
-                    )}
-
-                    {order.status === 'listo' && (
-                      <Button
-                        size="sm"
-                        variant="dark"
-                        disabled={busyId === order.id}
-                        onClick={() =>
-                          updateStatus(order, 'entregado', {
-                            deliveredAt: serverTimestamp(),
-                          })
-                        }
-                      >
-                        Entregado ✅
-                      </Button>
-                    )}
+                    <Badge bg={variant}>{label}</Badge>
                   </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
+
+                  <div className="mb-2">
+                    {order.items?.map((it, i) => (
+                      <div key={i} className="small">
+                        {it.qty}× {it.name}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-auto d-flex justify-content-between align-items-center">
+                    <strong>
+                      Total: ${Number(order.total || 0).toFixed(2)}
+                    </strong>
+
+                    <div className="d-flex gap-2">
+                      {(st === 'enviado' || st === 'pending') && (
+                        <Button
+                          size="sm"
+                          variant="outline-primary"
+                          disabled={busyId === order.id}
+                          onClick={() =>
+                            updateStatus(order, 'recibido', {
+                              receivedAt: serverTimestamp(),
+                            })
+                          }
+                        >
+                          {busyId === order.id ? 'Guardando...' : 'Pedido recibido'}
+                        </Button>
+                      )}
+
+                      {st === 'recibido' && (
+                        <Button
+                          size="sm"
+                          variant="success"
+                          disabled={busyId === order.id}
+                          onClick={() =>
+                            updateStatus(order, 'listo', {
+                              readyAt: serverTimestamp(),
+                            })
+                          }
+                        >
+                          {busyId === order.id ? 'Guardando...' : 'Pedido listo'}
+                        </Button>
+                      )}
+
+                      {st === 'listo' && (
+                        <Button
+                          size="sm"
+                          variant="dark"
+                          disabled={busyId === order.id}
+                          onClick={() =>
+                            updateStatus(order, 'entregado', {
+                              deliveredAt: serverTimestamp(),
+                            })
+                          }
+                        >
+                          {busyId === order.id ? 'Guardando...' : 'Entregado ✅'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+          )
+        })}
       </Row>
     )
   }
 
   return (
     <Container className="py-4 min-vh-100">
-      <h2 className="text-light mb-2">
-        Pedidos sucursal: {titleBranch}
-      </h2>
+      <h2 className="text-light mb-2">Pedidos sucursal: {titleBranch}</h2>
 
       {loading ? (
         <div className="text-center py-5">
@@ -203,18 +226,15 @@ export default function SucursalOrdersPage() {
         </div>
       ) : (
         <Tabs
-            activeKey={tab}
-            onSelect={(k) => setTab(k)}
-            className="mb-4 vianelo-tabs"
-          >
+          activeKey={tab}
+          onSelect={(k) => setTab(k)}
+          className="mb-4 vianelo-tabs"
+        >
           <Tab eventKey="activos" title={`🟢 Activos (${activos.length})`}>
             {OrdersGrid(activos)}
           </Tab>
 
-          <Tab
-            eventKey="entregados"
-            title={`⚫ Entregados (${entregados.length})`}
-          >
+          <Tab eventKey="entregados" title={`⚫ Entregados (${entregados.length})`}>
             {OrdersGrid(entregados)}
           </Tab>
         </Tabs>
