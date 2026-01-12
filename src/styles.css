@@ -562,35 +562,31 @@ body{
   font-size: 0.78rem;
   font-weight: 700;
   border: 1px solid rgba(0,0,0,0.08);
+  line-height: 1;
+  white-space: nowrap;
 }
 
-.status-pending {
+/* enviado / pending */
+.status-pending,
+.status-enviado {
   color: #6c757d;
   background: rgba(108, 117, 125, 0.12);
 }
 
-.status-received {
+/* recibido */
+.status-recibido {
   color: #0dcaf0;
   background: rgba(13, 202, 240, 0.12);
 }
 
-.status-ready {
+/* listo */
+.status-listo {
   color: #198754;
   background: rgba(25, 135, 84, 0.12);
 }
 
-.status-delivered {
+/* entregado */
+.status-entregado {
   color: #212529;
   background: rgba(33, 37, 41, 0.12);
-}
-
-/* Banner cuando está listo */
-.ready-banner {
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(25, 135, 84, 0.12);
-  color: #198754;
-  font-weight: 700;
-  font-size: 0.9rem;
 }

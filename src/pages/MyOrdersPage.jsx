@@ -35,7 +35,6 @@ const STATUS_BADGE_CLASS = {
 const BRANCH_LABELS = {
   chapule: 'Vianelo Chapule',
   quintas: 'Vianelo Quintas',
-  'tres-rios': 'Vianelo Tres Ríos',
 }
 
 function formatDate(ts) {
