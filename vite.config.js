@@ -11,4 +11,7 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react', 'react-dom']
   }
+    ssr: {
+    noExternal: ['react', 'react-dom', '@paypal/react-paypal-js']
+  }
 })
