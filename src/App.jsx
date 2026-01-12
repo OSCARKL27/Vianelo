@@ -12,7 +12,7 @@ import SucursalOrdersPage from './pages/SucursalOrdersPage.jsx'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 import OrderSuccessPage from './pages/OrderSuccessPage.jsx'
 import MyOrdersPage from './pages/MyOrdersPage.jsx'
-
+import GlobalNotifications from './components/GlobalNotifications.jsx'
 
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
