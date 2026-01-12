@@ -1,5 +1,15 @@
-import { useState, useEffect } from 'react'
-import { Button, Card, Col, Container, Row, Table, Alert, Form } from 'react-bootstrap'
+import { useState, useEffect, useMemo } from 'react'
+import {
+  Button,
+  Card,
+  Col,
+  Container,
+  Row,
+  Table,
+  Alert,
+  Form,
+  Accordion,
+} from 'react-bootstrap'
 import { useProducts } from '../hooks/useProducts'
 import ProductEditor from '../components/ProductEditor'
 import InventoryBadge from '../components/InventoryBadge'
@@ -11,19 +21,15 @@ import {
   collection,
   getDocs,
   orderBy,
-  query
+  query,
+  where,
+  Timestamp,
 } from 'firebase/firestore'
 import { db } from '../services/firebase'
 
 export default function AdminDashboard() {
-  const {
-    products,
-    loading,
-    error,
-    createProduct,
-    updateProduct,
-    removeProduct
-  } = useProducts()
+  const { products, loading, error, createProduct, updateProduct, removeProduct } =
+    useProducts()
 
   const [show, setShow] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -37,16 +43,75 @@ export default function AdminDashboard() {
   const [sales, setSales] = useState([])
   const [loadingSales, setLoadingSales] = useState(false)
 
+  // ✅ Filtros por fecha (inputs)
+  const [fromDate, setFromDate] = useState('') // yyyy-mm-dd
+  const [toDate, setToDate] = useState('') // yyyy-mm-dd
+  const [appliedRange, setAppliedRange] = useState({ from: '', to: '' })
+
+  // ===============================
+  // Helpers fechas y agrupación
+  // ===============================
+  function startOfDayLocal(dateStr) {
+    // dateStr: 'YYYY-MM-DD'
+    const [y, m, d] = dateStr.split('-').map(Number)
+    return new Date(y, m - 1, d, 0, 0, 0, 0)
+  }
+
+  function nextDayStartLocal(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number)
+    return new Date(y, m - 1, d + 1, 0, 0, 0, 0)
+  }
+
+  function formatDayKey(ts) {
+    const d = ts?.toDate ? ts.toDate() : ts instanceof Date ? ts : null
+    if (!d) return 'Sin fecha'
+
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
+  function formatDayLabel(dayKey) {
+    if (dayKey === 'Sin fecha') return dayKey
+    const [y, m, d] = dayKey.split('-')
+    return `${d}/${m}/${y}`
+  }
+
+  function formatRangeLabel(from, to) {
+    if (!from && !to) return 'Todas'
+    if (from && !to) return `Desde ${formatDayLabel(from)}`
+    if (!from && to) return `Hasta ${formatDayLabel(to)}`
+    return `${formatDayLabel(from)} - ${formatDayLabel(to)}`
+  }
+
+  // ===============================
+  // Cargar ventas (con filtro opcional Firestore)
+  // ===============================
   useEffect(() => {
     async function loadSales() {
       setLoadingSales(true)
       try {
-        const q = query(
-          collection(db, 'sales'),
-          orderBy('date', 'desc')
-        )
+        const base = collection(db, 'sales')
+
+        // Si hay filtro aplicado, lo metemos al query
+        const clauses = []
+
+        if (appliedRange.from) {
+          const fromTs = Timestamp.fromDate(startOfDayLocal(appliedRange.from))
+          clauses.push(where('date', '>=', fromTs))
+        }
+
+        if (appliedRange.to) {
+          // usamos " < inicio del día siguiente" para incluir todo el día 'to'
+          const toNextTs = Timestamp.fromDate(nextDayStartLocal(appliedRange.to))
+          clauses.push(where('date', '<', toNextTs))
+        }
+
+        const q = query(base, ...clauses, orderBy('date', 'desc'))
+
         const snap = await getDocs(q)
-        setSales(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+        setSales(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
       } catch (e) {
         console.error(e)
       } finally {
@@ -54,10 +119,30 @@ export default function AdminDashboard() {
       }
     }
 
-    if (showReport) {
-      loadSales()
-    }
-  }, [showReport])
+    if (showReport) loadSales()
+  }, [showReport, appliedRange.from, appliedRange.to])
+
+  // ✅ Agrupar ventas por día (ya filtradas desde Firestore)
+  const salesDaysSorted = useMemo(() => {
+    const salesByDay = sales.reduce((acc, sale) => {
+      const key = formatDayKey(sale.date)
+      if (!acc[key]) acc[key] = { dayKey: key, total: 0, orders: 0, sales: [] }
+
+      acc[key].sales.push(sale)
+      acc[key].orders += 1
+      acc[key].total += Number(sale.total || 0)
+
+      return acc
+    }, {})
+
+    return Object.values(salesByDay).sort((a, b) => b.dayKey.localeCompare(a.dayKey))
+  }, [sales])
+
+  const grandTotal = useMemo(() => {
+    return sales.reduce((sum, s) => sum + Number(s.total || 0), 0)
+  }, [sales])
+
+  const grandOrders = sales.length
 
   function openNew() {
     setEditing(null)
@@ -138,30 +223,39 @@ export default function AdminDashboard() {
     }
   }
 
+  // ✅ Acciones del filtro
+  function applyDateFilter(e) {
+    e?.preventDefault?.()
+
+    // validación simple (si from > to, intercambiamos)
+    if (fromDate && toDate && fromDate > toDate) {
+      setAppliedRange({ from: toDate, to: fromDate })
+      return
+    }
+
+    setAppliedRange({ from: fromDate, to: toDate })
+  }
+
+  function clearDateFilter() {
+    setFromDate('')
+    setToDate('')
+    setAppliedRange({ from: '', to: '' })
+  }
+
   return (
     <Container className="py-4 admin-bg min-vh-100">
-
       {/* 🧭 ENCABEZADO */}
       <Row className="mb-3 align-items-center">
         <Col>
           <h2 className="admin-title">Panel de administración</h2>
-          <p className="m-0 admin-subtitle">
-            Gestiona los productos del menú y su inventario.
-          </p>
+          <p className="m-0 admin-subtitle">Gestiona los productos del menú y su inventario.</p>
         </Col>
         <Col className="text-end">
-          <Button
-            onClick={openNew}
-            disabled={busy}
-            className="btn-admin-primary me-2"
-          >
+          <Button onClick={openNew} disabled={busy} className="btn-admin-primary me-2">
             Nuevo producto
           </Button>
 
-          <Button
-            variant="outline-secondary"
-            onClick={() => setShowReport(!showReport)}
-          >
+          <Button variant="outline-secondary" onClick={() => setShowReport(!showReport)}>
             {showReport ? 'Ocultar reporte' : 'Ver reporte de ventas'}
           </Button>
         </Col>
@@ -182,37 +276,149 @@ export default function AdminDashboard() {
       {showReport && (
         <Card className="mb-4 shadow-sm">
           <Card.Body>
-            <h4>Reporte de ventas</h4>
+            <Row className="align-items-center mb-3">
+              <Col>
+                <h4 className="mb-1">Reporte de ventas</h4>
+                <div className="text-muted">
+                  Rango: <strong>{formatRangeLabel(appliedRange.from, appliedRange.to)}</strong>
+                </div>
+              </Col>
+              <Col md="6">
+                {/* ✅ Filtro por fecha */}
+                <Form onSubmit={applyDateFilter} className="d-flex gap-2 justify-content-end">
+                  <Form.Group>
+                    <Form.Label className="mb-1">Desde</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                    />
+                  </Form.Group>
+
+                  <Form.Group>
+                    <Form.Label className="mb-1">Hasta</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                    />
+                  </Form.Group>
+
+                  <div className="d-flex align-items-end gap-2">
+                    <Button type="submit" variant="primary" disabled={loadingSales}>
+                      Aplicar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline-secondary"
+                      onClick={clearDateFilter}
+                      disabled={loadingSales}
+                    >
+                      Limpiar
+                    </Button>
+                  </div>
+                </Form>
+              </Col>
+            </Row>
+
+            {/* ✅ Resumen general */}
+            <Card className="mb-3" style={{ background: '#fafafa' }}>
+              <Card.Body className="py-3">
+                <Row>
+                  <Col>
+                    <div className="text-muted">Órdenes</div>
+                    <div style={{ fontSize: 20, fontWeight: 700 }}>{grandOrders}</div>
+                  </Col>
+                  <Col>
+                    <div className="text-muted">Total</div>
+                    <div style={{ fontSize: 20, fontWeight: 700 }}>
+                      ${Number(grandTotal).toFixed(2)}
+                    </div>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
 
             {loadingSales ? (
               <p>Cargando ventas...</p>
             ) : sales.length === 0 ? (
-              <p>No hay ventas registradas.</p>
+              <p>No hay ventas registradas en ese rango.</p>
             ) : (
-              sales.map(sale => (
-                <div
-                  key={sale.id}
-                  style={{ borderBottom: '1px solid #ddd', marginBottom: 12 }}
-                >
-                  <p>
-                    <strong>Fecha:</strong>{' '}
-                    {sale.date?.toDate
-                      ? sale.date.toDate().toLocaleString()
-                      : ''}
-                  </p>
-                  <p>
-                    <strong>Total:</strong> $
-                    {Number(sale.total).toFixed(2)}
-                  </p>
-                  <ul>
-                    {sale.items.map(item => (
-                      <li key={item.id}>
-                        {item.name} x {item.quantity}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))
+              <Accordion alwaysOpen>
+                {salesDaysSorted.map((day, idx) => (
+                  <Accordion.Item eventKey={String(idx)} key={day.dayKey}>
+                    {/* ✅ Header por día */}
+                    <Accordion.Header>
+                      <div className="w-100 d-flex justify-content-between align-items-center pe-3">
+                        <div>
+                          <strong>📅 {formatDayLabel(day.dayKey)}</strong>
+                          <div className="text-muted" style={{ fontSize: 12 }}>
+                            Órdenes: {day.orders}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 12 }} className="text-muted">
+                            Total del día
+                          </div>
+                          <div style={{ fontSize: 16, fontWeight: 700 }}>
+                            ${day.total.toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    </Accordion.Header>
+
+                    {/* ✅ Detalle colapsable */}
+                    <Accordion.Body>
+                      {day.sales.map((sale) => (
+                        <div
+                          key={sale.id}
+                          style={{
+                            background: '#fff',
+                            border: '1px solid #eee',
+                            borderRadius: 12,
+                            padding: 12,
+                            marginBottom: 12,
+                          }}
+                        >
+                          <Row className="align-items-center">
+                            <Col>
+                              <div className="text-muted" style={{ fontSize: 12 }}>
+                                Hora
+                              </div>
+                              <div style={{ fontWeight: 600 }}>
+                                {sale.date?.toDate
+                                  ? sale.date.toDate().toLocaleTimeString()
+                                  : ''}
+                              </div>
+                            </Col>
+                            <Col className="text-end">
+                              <div className="text-muted" style={{ fontSize: 12 }}>
+                                Total
+                              </div>
+                              <div style={{ fontWeight: 800, fontSize: 16 }}>
+                                ${Number(sale.total || 0).toFixed(2)}
+                              </div>
+                            </Col>
+                          </Row>
+
+                          <div className="mt-2">
+                            <div className="text-muted" style={{ fontSize: 12 }}>
+                              Productos
+                            </div>
+                            <ul className="mb-0">
+                              {(sale.items || []).map((item) => (
+                                <li key={item.id}>
+                                  {item.name} x {item.quantity}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      ))}
+                    </Accordion.Body>
+                  </Accordion.Item>
+                ))}
+              </Accordion>
             )}
           </Card.Body>
         </Card>
@@ -224,9 +430,7 @@ export default function AdminDashboard() {
           {loading ? (
             <div>Cargando...</div>
           ) : error ? (
-            <Alert variant="danger">
-              Ocurrió un error cargando productos.
-            </Alert>
+            <Alert variant="danger">Ocurrió un error cargando productos.</Alert>
           ) : (
             <Table responsive hover className="admin-table">
               <thead>

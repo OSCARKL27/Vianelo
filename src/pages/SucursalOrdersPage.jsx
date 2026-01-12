@@ -1,4 +1,3 @@
-// src/pages/SucursalOrdersPage.jsx
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
@@ -9,6 +8,8 @@ import {
   Badge,
   Button,
   Spinner,
+  Tabs,
+  Tab,
 } from 'react-bootstrap'
 import {
   collection,
@@ -23,7 +24,7 @@ import {
 import { db } from '../services/firebase'
 
 const STATUS_LABELS = {
-  pending: 'Enviado',            // 👈 tratamos pending como “Enviado”
+  pending: 'Enviado',
   enviado: 'Enviado',
   recibido: 'En preparación',
   listo: 'Listo para entregar',
@@ -31,7 +32,7 @@ const STATUS_LABELS = {
 }
 
 const STATUS_VARIANT = {
-  pending: 'secondary',          // 👈 mismo estilo que enviado
+  pending: 'secondary',
   enviado: 'secondary',
   recibido: 'info',
   listo: 'success',
@@ -39,161 +40,184 @@ const STATUS_VARIANT = {
 }
 
 export default function SucursalOrdersPage() {
-  const { branchId } = useParams() // viene de la URL: /sucursal/:branchId
+  const { branchId } = useParams()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState(null)
+  const [tab, setTab] = useState('activos')
 
-  // 🔄 Escuchar órdenes de esta sucursal en tiempo real
+  // 🔄 Escuchar órdenes de esta sucursal
   useEffect(() => {
     const cleanBranchId = (branchId || '').trim()
     if (!cleanBranchId) return
 
     const q = query(
       collection(db, 'orders'),
-      where('branchId', '==', cleanBranchId),   // 👈 campo correcto
+      where('branchId', '==', cleanBranchId),
       orderBy('createdAt', 'asc')
     )
 
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-        setOrders(list)
-        setLoading(false)
-      },
-      (err) => {
-        console.error('Error escuchando órdenes', err)
-        setLoading(false)
-      }
-    )
+    const unsub = onSnapshot(q, (snap) => {
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      setOrders(list)
+      setLoading(false)
+    })
 
     return () => unsub()
   }, [branchId])
 
-  // 👉 Marcar como "recibido"
-  async function markReceived(order) {
+  // =========================
+  // 🔁 CAMBIOS DE ESTADO
+  // =========================
+  async function updateStatus(order, status, extra = {}) {
     setBusyId(order.id)
     try {
       await updateDoc(doc(db, 'orders', order.id), {
-        status: 'recibido',
-        receivedAt: serverTimestamp(),
+        status,
+        ...extra,
       })
     } catch (e) {
-      console.error('Error al marcar recibido', e)
-      alert('No se pudo marcar como recibido.')
+      console.error(e)
+      alert('No se pudo actualizar el pedido.')
     } finally {
       setBusyId(null)
     }
   }
 
-  // 👉 Marcar como "listo"
-  async function markReady(order) {
-    setBusyId(order.id)
-    try {
-      await updateDoc(doc(db, 'orders', order.id), {
-        status: 'listo',
-        readyAt: serverTimestamp(),
-      })
-    } catch (e) {
-      console.error('Error al marcar listo', e)
-      alert('No se pudo marcar como listo.')
-    } finally {
-      setBusyId(null)
-    }
-  }
+  const activos = orders.filter((o) => o.status !== 'entregado')
+  const entregados = orders.filter((o) => o.status === 'entregado')
 
   // Nombre bonito de la sucursal
   const cleanBranchId = (branchId || '').trim()
   const titleBranch =
-    cleanBranchId === 'quintas'
+      cleanBranchId === 'quintas'
       ? 'Vianelo Quintas'
-      : cleanBranchId === 'tres-rios'
-      ? 'Vianelo Tres Ríos'
       : cleanBranchId === 'chapule'
       ? 'Vianelo Chapule'
       : cleanBranchId || 'Sucursal'
 
+  function OrdersGrid(list) {
+    if (list.length === 0) {
+      return <p className="text-white-50">No hay pedidos.</p>
+    }
+
+    return (
+      <Row className="g-3">
+        {list.map((order) => (
+          <Col md={6} lg={4} key={order.id}>
+            <Card className="h-100">
+              <Card.Body className="d-flex flex-column">
+                <div className="d-flex justify-content-between mb-2">
+                  <div>
+                    <Card.Title className="mb-0">
+                      Pedido #{order.id.slice(-6)}
+                    </Card.Title>
+                    <small className="text-muted">
+                      Cliente: {order.userName || '—'}
+                    </small>
+                  </div>
+
+                  <Badge bg={STATUS_VARIANT[order.status]}>
+                    {STATUS_LABELS[order.status]}
+                  </Badge>
+                </div>
+
+                <div className="mb-2">
+                  {order.items?.map((it, i) => (
+                    <div key={i} className="small">
+                      {it.qty}× {it.name}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-auto d-flex justify-content-between align-items-center">
+                  <strong>
+                    Total: ${Number(order.total || 0).toFixed(2)}
+                  </strong>
+
+                  <div className="d-flex gap-2">
+                    {(order.status === 'enviado' ||
+                      order.status === 'pending') && (
+                      <Button
+                        size="sm"
+                        variant="outline-primary"
+                        disabled={busyId === order.id}
+                        onClick={() =>
+                          updateStatus(order, 'recibido', {
+                            receivedAt: serverTimestamp(),
+                          })
+                        }
+                      >
+                        Pedido recibido
+                      </Button>
+                    )}
+
+                    {order.status === 'recibido' && (
+                      <Button
+                        size="sm"
+                        variant="success"
+                        disabled={busyId === order.id}
+                        onClick={() =>
+                          updateStatus(order, 'listo', {
+                            readyAt: serverTimestamp(),
+                          })
+                        }
+                      >
+                        Pedido listo
+                      </Button>
+                    )}
+
+                    {order.status === 'listo' && (
+                      <Button
+                        size="sm"
+                        variant="dark"
+                        disabled={busyId === order.id}
+                        onClick={() =>
+                          updateStatus(order, 'entregado', {
+                            deliveredAt: serverTimestamp(),
+                          })
+                        }
+                      >
+                        Entregado ✅
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        ))}
+      </Row>
+    )
+  }
+
   return (
     <Container className="py-4 min-vh-100">
-      <Row className="mb-3">
-        <Col>
-          <h2 className="text-light">Pedidos sucursal: {titleBranch}</h2>
-          <p className="text-white-50 m-0">
-            Aquí el personal puede recibir y marcar los pedidos como listos.
-          </p>
-        </Col>
-      </Row>
+      <h2 className="text-light mb-2">
+        Pedidos sucursal: {titleBranch}
+      </h2>
 
       {loading ? (
         <div className="text-center py-5">
           <Spinner animation="border" />
         </div>
-      ) : orders.length === 0 ? (
-        <p className="text-white-50">No hay pedidos para esta sucursal.</p>
       ) : (
-        <Row className="g-3">
-          {orders.map((order) => (
-            <Col md={6} lg={4} key={order.id}>
-              <Card className="h-100">
-                <Card.Body className="d-flex flex-column">
-                  <div className="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                      <Card.Title className="mb-0">
-                        Pedido #{order.id.slice(-6)}
-                      </Card.Title>
-                      <small className="text-muted">
-                        Cliente: {order.userName || '—'}
-                      </small>
-                    </div>
-                    <Badge bg={STATUS_VARIANT[order.status] || 'secondary'}>
-                      {STATUS_LABELS[order.status] || order.status}
-                    </Badge>
-                  </div>
+        <Tabs
+            activeKey={tab}
+            onSelect={(k) => setTab(k)}
+            className="mb-4 vianelo-tabs"
+          >
+          <Tab eventKey="activos" title={`🟢 Activos (${activos.length})`}>
+            {OrdersGrid(activos)}
+          </Tab>
 
-                  <div className="mb-2">
-                    {order.items?.map((item, idx) => (
-                      <div key={idx} className="small">
-                        {item.qty}× {item.name}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-auto d-flex justify-content-between align-items-center pt-2">
-                    <strong>
-                      Total: ${Number(order.total || 0).toFixed(2)}
-                    </strong>
-
-                    <div className="d-flex gap-2">
-                      {(order.status === 'enviado' ||
-                        order.status === 'pending') && (
-                        <Button
-                          size="sm"
-                          variant="outline-primary"
-                          onClick={() => markReceived(order)}
-                          disabled={busyId === order.id}
-                        >
-                          {busyId === order.id ? 'Guardando...' : 'Pedido recibido'}
-                        </Button>
-                      )}
-
-                      {order.status === 'recibido' && (
-                        <Button
-                          size="sm"
-                          variant="success"
-                          onClick={() => markReady(order)}
-                          disabled={busyId === order.id}
-                        >
-                          {busyId === order.id ? 'Guardando...' : 'Pedido listo'}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
+          <Tab
+            eventKey="entregados"
+            title={`⚫ Entregados (${entregados.length})`}
+          >
+            {OrdersGrid(entregados)}
+          </Tab>
+        </Tabs>
       )}
     </Container>
   )
