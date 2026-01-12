@@ -517,3 +517,80 @@ body{
   background: linear-gradient(135deg, #822793, #e65847);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
+/* Tabs bonitos */
+.vianelo-tabs .nav-link {
+  color: #adb5bd;
+  background-color: transparent;
+  border: none;
+  border-radius: 999px;
+  padding: 0.55rem 1.2rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.vianelo-tabs .nav-link:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.vianelo-tabs .nav-link.active {
+  color: #fff;
+  background: linear-gradient(135deg, #822793, #e65847);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* Cards */
+.order-card {
+  border-radius: 16px;
+}
+
+.order-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+/* Status chips */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+.status-pending {
+  color: #6c757d;
+  background: rgba(108, 117, 125, 0.12);
+}
+
+.status-received {
+  color: #0dcaf0;
+  background: rgba(13, 202, 240, 0.12);
+}
+
+.status-ready {
+  color: #198754;
+  background: rgba(25, 135, 84, 0.12);
+}
+
+.status-delivered {
+  color: #212529;
+  background: rgba(33, 37, 41, 0.12);
+}
+
+/* Banner cuando está listo */
+.ready-banner {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(25, 135, 84, 0.12);
+  color: #198754;
+  font-weight: 700;
+  font-size: 0.9rem;
+}

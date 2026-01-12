@@ -1,6 +1,17 @@
 // src/pages/MyOrdersPage.jsx
-import { useEffect, useRef, useState } from 'react'
-import { Container, Row, Col, Card, Badge, Spinner } from 'react-bootstrap'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Badge,
+  Spinner,
+  Tabs,
+  Tab,
+  Button,
+  Collapse,
+} from 'react-bootstrap'
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore'
 import { db } from '../services/firebase'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
@@ -13,12 +24,34 @@ const STATUS_LABELS = {
   entregado: 'Entregado',
 }
 
-const STATUS_VARIANT = {
-  pending: 'secondary',
-  enviado: 'secondary',
-  recibido: 'info',
-  listo: 'success',
-  entregado: 'dark',
+const STATUS_BADGE_CLASS = {
+  pending: 'status-chip status-pending',
+  enviado: 'status-chip status-pending',
+  recibido: 'status-chip status-received',
+  listo: 'status-chip status-ready',
+  entregado: 'status-chip status-delivered',
+}
+
+const BRANCH_LABELS = {
+  chapule: 'Vianelo Chapule',
+  quintas: 'Vianelo Quintas',
+  'tres-rios': 'Vianelo Tres Ríos',
+}
+
+function formatDate(ts) {
+  try {
+    if (!ts) return null
+    const d = ts?.toDate ? ts.toDate() : new Date(ts)
+    return d.toLocaleString('es-MX', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch {
+    return null
+  }
 }
 
 export default function MyOrdersPage() {
@@ -26,6 +59,9 @@ export default function MyOrdersPage() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const prevOrdersRef = useRef([])
+  const notifiedRef = useRef(new Set()) // evita notificar doble
+  const [tab, setTab] = useState('activos')
+  const [openId, setOpenId] = useState(null)
 
   // 🔹 Escuchar sesión
   useEffect(() => {
@@ -36,7 +72,7 @@ export default function MyOrdersPage() {
     return () => unsub()
   }, [])
 
-  // 🔹 Pedir permiso de notificaciones (una vez)
+  // 🔹 Permiso notificaciones
   useEffect(() => {
     if (!('Notification' in window)) return
     if (Notification.permission === 'default') {
@@ -66,18 +102,19 @@ export default function MyOrdersPage() {
         const prev = prevOrdersRef.current
         list.forEach((order) => {
           const before = prev.find((o) => o.id === order.id)
-          if (
-            before &&
-            before.status !== 'listo' &&
-            order.status === 'listo'
-          ) {
-            // Enviar notificación del navegador
+
+          const becameReady =
+            before && before.status !== 'listo' && order.status === 'listo'
+
+          if (becameReady && !notifiedRef.current.has(order.id)) {
+            notifiedRef.current.add(order.id)
+
             if (
               'Notification' in window &&
               Notification.permission === 'granted'
             ) {
               new Notification('Tu pedido está listo 🎉', {
-                body: `Pedido #${order.id.slice(-6)} en sucursal ${order.branchId}`,
+                body: `Pedido #${order.id.slice(-6)} • ${BRANCH_LABELS[order.branchId] || order.branchId}`,
               })
             }
           }
@@ -96,12 +133,22 @@ export default function MyOrdersPage() {
     return () => unsub()
   }, [user])
 
+  const activos = useMemo(
+    () => orders.filter((o) => o.status !== 'entregado'),
+    [orders]
+  )
+  const entregados = useMemo(
+    () => orders.filter((o) => o.status === 'entregado'),
+    [orders]
+  )
+
   if (!user) {
     return (
       <Container className="min-vh-100 d-flex justify-content-center align-items-center">
-        <p className="text-white">
-          Inicia sesión para ver tus pedidos.
-        </p>
+        <div className="text-center">
+          <h4 className="text-light mb-2">Mis pedidos</h4>
+          <p className="text-white-50 m-0">Inicia sesión para ver tus pedidos.</p>
+        </div>
       </Container>
     )
   }
@@ -111,6 +158,98 @@ export default function MyOrdersPage() {
       <Container className="min-vh-100 d-flex justify-content-center align-items-center">
         <Spinner animation="border" />
       </Container>
+    )
+  }
+
+  const OrdersGrid = (list) => {
+    if (list.length === 0) {
+      return (
+        <Card className="bg-dark border-0 shadow-sm">
+          <Card.Body className="text-center py-4">
+            <div className="text-white-50">No hay pedidos en esta sección.</div>
+          </Card.Body>
+        </Card>
+      )
+    }
+
+    return (
+      <Row className="g-3">
+        {list.map((order) => {
+          const branchName = BRANCH_LABELS[order.branchId] || order.branchId || 'Sucursal'
+          const statusText = STATUS_LABELS[order.status] || order.status || '—'
+          const dateText = formatDate(order.createdAt)
+          const isOpen = openId === order.id
+
+          return (
+            <Col md={6} lg={4} key={order.id}>
+              <Card className="order-card h-100 border-0 shadow-sm">
+                <Card.Body className="d-flex flex-column">
+                  {/* Header */}
+                  <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
+                    <div>
+                      <div className="d-flex align-items-center gap-2">
+                        <h5 className="mb-0 text-dark">
+                          Pedido #{order.id.slice(-6)}
+                        </h5>
+                        <span className={STATUS_BADGE_CLASS[order.status] || 'status-chip'}>
+                          {statusText}
+                        </span>
+                      </div>
+                      <div className="text-muted small mt-1">
+                        {branchName}
+                        {dateText ? <span className="ms-2">• {dateText}</span> : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Resumen */}
+                  <div className="order-summary mt-1 mb-2">
+                    <div className="text-muted small">Total</div>
+                    <div className="fw-bold fs-5">
+                      ${Number(order.total || 0).toFixed(2)}
+                    </div>
+                  </div>
+
+                  {/* Productos (colapsable) */}
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    className="w-100 mt-1"
+                    onClick={() => setOpenId(isOpen ? null : order.id)}
+                    aria-expanded={isOpen}
+                  >
+                    {isOpen ? 'Ocultar productos' : `Ver productos (${order.items?.length || 0})`}
+                  </Button>
+
+                  <Collapse in={isOpen}>
+                    <div className="mt-3">
+                      <div className="small text-muted mb-2">Productos</div>
+                      <div className="d-flex flex-column gap-1">
+                        {order.items?.map((item, idx) => (
+                          <div key={idx} className="d-flex justify-content-between small">
+                            <span className="text-dark">
+                              {item.qty}× {item.name}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </Collapse>
+
+                  {/* Footer */}
+                  <div className="mt-auto pt-3">
+                    {order.status === 'listo' && (
+                      <div className="ready-banner">
+                        🎉 Tu pedido está listo para recoger
+                      </div>
+                    )}
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+          )
+        })}
+      </Row>
     )
   }
 
@@ -125,47 +264,19 @@ export default function MyOrdersPage() {
         </Col>
       </Row>
 
-      {orders.length === 0 ? (
-        <p className="text-white-50">Aún no has realizado pedidos.</p>
-      ) : (
-        <Row className="g-3">
-          {orders.map((order) => (
-            <Col md={6} lg={4} key={order.id}>
-              <Card className="h-100">
-                <Card.Body className="d-flex flex-column">
-                  <div className="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                      <Card.Title className="mb-0">
-                        Pedido #{order.id.slice(-6)}
-                      </Card.Title>
-                      <small className="text-muted">
-                        Sucursal: {order.branchId}
-                      </small>
-                    </div>
-                    <Badge bg={STATUS_VARIANT[order.status] || 'secondary'}>
-                      {STATUS_LABELS[order.status] || order.status}
-                    </Badge>
-                  </div>
-
-                  <div className="mb-2">
-                    {order.items?.map((item, idx) => (
-                      <div key={idx} className="small">
-                        {item.qty}× {item.name}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-auto d-flex justify-content-between align-items-center pt-2">
-                    <strong>
-                      Total: ${Number(order.total || 0).toFixed(2)}
-                    </strong>
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      )}
+      {/* Tabs */}
+      <Tabs
+        activeKey={tab}
+        onSelect={(k) => setTab(k)}
+        className="mb-4 vianelo-tabs"
+      >
+        <Tab eventKey="activos" title={`🟢 Activos (${activos.length})`}>
+          {OrdersGrid(activos)}
+        </Tab>
+        <Tab eventKey="historial" title={`⚫ Historial (${entregados.length})`}>
+          {OrdersGrid(entregados)}
+        </Tab>
+      </Tabs>
     </Container>
   )
 }
