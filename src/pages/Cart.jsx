@@ -18,8 +18,17 @@ import PayPalButton from '../components/PayPalButton'
 const BRANCHES = [
   { id: 'chapule', label: 'Vianelo Chapule' },
   { id: 'quintas', label: 'Vianelo Quintas' },
-  { id: 'tres-rios', label: 'Vianelo Tres Ríos' },
 ]
+
+// 🔹 Estilo miniatura imagen
+const thumbStyle = {
+  width: 42,
+  height: 42,
+  borderRadius: 10,
+  objectFit: 'cover',
+  border: '1px solid rgba(0,0,0,0.08)',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+}
 
 export default function CartPage() {
   const {
@@ -48,7 +57,7 @@ export default function CartPage() {
     )
   }
 
-  // 👉 Se ejecuta SOLO cuando PayPal aprueba el pago
+  // 👉 SOLO cuando PayPal confirma
   const handlePaySuccess = async (paymentDetails) => {
     setErrorMsg('')
 
@@ -67,7 +76,7 @@ export default function CartPage() {
 
     try {
       const orderData = {
-        branchId: selectedBranchId.trim(),
+        branchId: selectedBranchId,
         items: items.map((it) => ({
           productId: it.id,
           name: it.name,
@@ -89,109 +98,147 @@ export default function CartPage() {
 
       clearCart()
       navigate(`/pedido-exitoso/${docRef.id}`)
-    } catch (err) {
-      console.error(err)
-      setErrorMsg(
-        'Ocurrió un problema al registrar tu pedido. Intenta nuevamente.'
-      )
+    } catch (error) {
+      console.error(error)
+      setErrorMsg('Error al guardar el pedido. Intenta de nuevo.')
     } finally {
       setSavingOrder(false)
     }
   }
 
   return (
-    <Container className="cart-page min-vh-100">
-      <h2 className="mb-4">Tu carrito</h2>
+    <Container className="cart-page min-vh-100 py-4">
+      <div className="mx-auto" style={{ maxWidth: 950 }}>
+        <Card className="shadow-sm overflow-hidden">
+          {/* 🔹 HEADER CORREGIDO */}
+          <Card.Header className="bg-white py-3">
+            <div className="d-flex align-items-center justify-content-between">
+              <h4 className="mb-0 fw-bold">Tu carrito</h4>
+              <span className="text-muted small">
+                {items.length} producto(s)
+              </span>
+            </div>
+          </Card.Header>
 
-      <Card className="shadow-sm">
-        <Card.Body>
-          {errorMsg && <Alert variant="danger">{errorMsg}</Alert>}
+          <Card.Body>
+            {errorMsg && <Alert variant="danger">{errorMsg}</Alert>}
 
-          <Table responsive hover className="mb-4">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Precio</th>
-                <th>Cantidad</th>
-                <th>Total</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((it) => (
-                <tr key={it.id}>
-                  <td>{it.name}</td>
-                  <td>${it.price.toFixed(2)}</td>
-                  <td>
-                    <Button
-                      size="sm"
-                      variant="outline-secondary"
-                      onClick={() => decreaseQty(it.id)}
-                    >
-                      −
-                    </Button>{' '}
-                    {it.qty}{' '}
-                    <Button
-                      size="sm"
-                      variant="outline-secondary"
-                      onClick={() => increaseQty(it.id)}
-                    >
-                      +
-                    </Button>
-                  </td>
-                  <td>${(it.price * it.qty).toFixed(2)}</td>
-                  <td>
-                    <Button
-                      size="sm"
-                      variant="outline-danger"
-                      onClick={() => removeFromCart(it.id)}
-                    >
-                      ✕
-                    </Button>
-                  </td>
+            <Table responsive hover className="align-middle mb-4">
+              <thead>
+                <tr>
+                  <th style={{ width: 70 }}>Imagen</th>
+                  <th>Producto</th>
+                  <th>Precio</th>
+                  <th style={{ width: 180 }}>Cantidad</th>
+                  <th>Total</th>
+                  <th style={{ width: 60 }}></th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
+              </thead>
+              <tbody>
+                {items.map((it) => (
+                  <tr key={it.id}>
+                    <td>
+                      {it.imageUrl ? (
+                        <img
+                          src={it.imageUrl}
+                          alt={it.name}
+                          style={thumbStyle}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            ...thumbStyle,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: '#f3f3f3',
+                            boxShadow: 'none',
+                          }}
+                        >
+                          —
+                        </div>
+                      )}
+                    </td>
 
-          {/* 🔹 Selector de sucursal */}
-          <Form.Group className="mb-3">
-            <Form.Label>Selecciona la sucursal</Form.Label>
-            <Form.Select
-              value={selectedBranchId}
-              onChange={(e) => setSelectedBranchId(e.target.value)}
-              disabled={savingOrder}
-            >
-              <option value="">Selecciona una sucursal</option>
-              {BRANCHES.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.label}
-                </option>
-              ))}
-            </Form.Select>
-          </Form.Group>
+                    <td className="fw-semibold">{it.name}</td>
 
-          <div className="d-flex justify-content-between align-items-center">
-            <strong>Total: ${total.toFixed(2)}</strong>
-            <Button
-              variant="outline-secondary"
-              onClick={clearCart}
-              disabled={savingOrder}
-            >
-              Vaciar carrito
-            </Button>
-          </div>
+                    <td>${it.price.toFixed(2)}</td>
 
-          {/* 🔥 PAYPAL SANDBOX */}
-          <div className="mt-4">
+                    <td>
+                      <div className="d-flex align-items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline-secondary"
+                          onClick={() => decreaseQty(it.id)}
+                        >
+                          −
+                        </Button>
+                        <span className="fw-semibold">{it.qty}</span>
+                        <Button
+                          size="sm"
+                          variant="outline-secondary"
+                          onClick={() => increaseQty(it.id)}
+                        >
+                          +
+                        </Button>
+                      </div>
+                    </td>
+
+                    <td>${(it.price * it.qty).toFixed(2)}</td>
+
+                    <td>
+                      <Button
+                        size="sm"
+                        variant="outline-danger"
+                        onClick={() => removeFromCart(it.id)}
+                      >
+                        ✕
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+
+            {/* 🔹 SUCURSAL */}
+            <Form.Group className="mb-3">
+              <Form.Label>Selecciona la sucursal</Form.Label>
+              <Form.Select
+                value={selectedBranchId}
+                onChange={(e) => setSelectedBranchId(e.target.value)}
+                disabled={savingOrder}
+              >
+                <option value="">Selecciona una sucursal</option>
+                {BRANCHES.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.label}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+
+            {/* 🔹 TOTAL */}
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <strong>Total: ${total.toFixed(2)}</strong>
+              <Button
+                variant="outline-secondary"
+                onClick={clearCart}
+                disabled={savingOrder}
+              >
+                Vaciar carrito
+              </Button>
+            </div>
+
+            {/* 🔹 PAYPAL */}
             <PayPalButton
               total={total}
               disabled={savingOrder || !selectedBranchId}
               onSuccess={handlePaySuccess}
             />
-          </div>
-        </Card.Body>
-      </Card>
+          </Card.Body>
+        </Card>
+      </div>
     </Container>
   )
 }

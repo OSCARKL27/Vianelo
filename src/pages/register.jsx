@@ -91,7 +91,7 @@ export default function Register() {
   };
 
   return (
-    <Container fluid className="min-vh-100 d-flex align-items-center justify-content-center bg-light py-5">
+    <Container fluid className="min-vh-100 d-flex align-items-center justify-content-center py-5">
       <Row className="w-100 justify-content-center">
         <Col xs={12} sm={8} md={6} lg={4}>
           <Card className="shadow-lg border-0 rounded-4">
