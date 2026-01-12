@@ -50,7 +50,6 @@ export default function SucursalOrdersPage() {
   const [busyId, setBusyId] = useState(null)
   const [tab, setTab] = useState('activos')
 
-  // 🔄 Escuchar órdenes de esta sucursal
   useEffect(() => {
     const cleanBranchId = (branchId || '').trim()
     if (!cleanBranchId) return
@@ -67,9 +66,20 @@ export default function SucursalOrdersPage() {
         const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
         setOrders(list)
         setLoading(false)
+
+        // ✅ DEBUG en consola: aquí verás los statuses reales
+        console.log(
+          'ORDERS:',
+          list.map((o) => ({
+            id: o.id.slice(-6),
+            branchId: o.branchId,
+            status: o.status,
+            normalized: normalizeStatus(o.status),
+          }))
+        )
       },
       (err) => {
-        console.error('Error escuchando pedidos', err)
+        console.error('Error escuchando órdenes', err)
         setLoading(false)
       }
     )
@@ -77,7 +87,6 @@ export default function SucursalOrdersPage() {
     return () => unsub()
   }, [branchId])
 
-  // 🔁 CAMBIOS DE ESTADO
   async function updateStatus(order, status, extra = {}) {
     setBusyId(order.id)
     try {
@@ -94,7 +103,6 @@ export default function SucursalOrdersPage() {
     }
   }
 
-  // ✅ Tabs filtrados por status NORMALIZADO
   const activos = useMemo(
     () => orders.filter((o) => normalizeStatus(o.status) !== 'entregado'),
     [orders]
@@ -104,7 +112,6 @@ export default function SucursalOrdersPage() {
     [orders]
   )
 
-  // Nombre bonito de la sucursal
   const cleanBranchId = (branchId || '').trim()
   const titleBranch =
     cleanBranchId === 'quintas'
@@ -114,14 +121,12 @@ export default function SucursalOrdersPage() {
       : cleanBranchId || 'Sucursal'
 
   function OrdersGrid(list) {
-    if (list.length === 0) {
-      return <p className="text-white-50">No hay pedidos.</p>
-    }
+    if (list.length === 0) return <p className="text-white-50">No hay pedidos.</p>
 
     return (
       <Row className="g-3">
         {list.map((order) => {
-          const st = normalizeStatus(order.status) // ✅ status limpio
+          const st = normalizeStatus(order.status)
           const label = STATUS_LABELS[st] || st
           const variant = STATUS_VARIANT[st] || 'secondary'
 
@@ -134,13 +139,14 @@ export default function SucursalOrdersPage() {
                       <Card.Title className="mb-0">
                         Pedido #{order.id.slice(-6)}
                       </Card.Title>
-                      <small className="text-muted">
+
+                      <small className="text-muted d-block">
                         Cliente: {order.userName || '—'}
                       </small>
 
-                      {/* 🔎 DEBUG (borra después si quieres) */}
+                      {/* ✅ DEBUG visual para saber el status REAL */}
                       <small className="text-muted d-block">
-                        status: {String(order.status)}
+                        status real: <b>{String(order.status)}</b> → st: <b>{st}</b>
                       </small>
                     </div>
 
@@ -156,9 +162,7 @@ export default function SucursalOrdersPage() {
                   </div>
 
                   <div className="mt-auto d-flex justify-content-between align-items-center">
-                    <strong>
-                      Total: ${Number(order.total || 0).toFixed(2)}
-                    </strong>
+                    <strong>Total: ${Number(order.total || 0).toFixed(2)}</strong>
 
                     <div className="d-flex gap-2">
                       {(st === 'enviado' || st === 'pending') && (
@@ -203,6 +207,18 @@ export default function SucursalOrdersPage() {
                           }
                         >
                           {busyId === order.id ? 'Guardando...' : 'Entregado ✅'}
+                        </Button>
+                      )}
+
+                      {/* ✅ EXTRA: si el status no está en tu flujo, al menos te deja llevarlo a "recibido" */}
+                      {!['pending','enviado','recibido','listo','entregado'].includes(st) && (
+                        <Button
+                          size="sm"
+                          variant="outline-secondary"
+                          disabled={busyId === order.id}
+                          onClick={() => updateStatus(order, 'recibido', { receivedAt: serverTimestamp() })}
+                        >
+                          Forzar a recibido
                         </Button>
                       )}
                     </div>
