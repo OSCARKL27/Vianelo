@@ -31,6 +31,7 @@ export default function App() {
           <AppNavbar />
           <FloatingCart />
           <Container fluid className="p-0">
+            <GlobalNotifications />
             <Routes>
               {/* Rutas públicas */}
               <Route path="/login" element={<LoginPage />} />
