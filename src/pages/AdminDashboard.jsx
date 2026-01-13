@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Button,
   Card,
@@ -37,22 +37,22 @@ export default function AdminDashboard() {
   const [feedback, setFeedback] = useState(null)
 
   // ===============================
-  // 📊 REPORTE DE VENTAS (Firestore)
+  // 📊 REPORTE DE VENTAS
   // ===============================
   const [showReport, setShowReport] = useState(false)
   const [sales, setSales] = useState([])
   const [loadingSales, setLoadingSales] = useState(false)
+  const [salesError, setSalesError] = useState(null)
 
-  // ✅ Filtros por fecha (inputs)
+  // filtros por fecha (opcional)
   const [fromDate, setFromDate] = useState('') // yyyy-mm-dd
   const [toDate, setToDate] = useState('') // yyyy-mm-dd
   const [appliedRange, setAppliedRange] = useState({ from: '', to: '' })
 
   // ===============================
-  // Helpers fechas y agrupación
+  // Helpers fechas
   // ===============================
   function startOfDayLocal(dateStr) {
-    // dateStr: 'YYYY-MM-DD'
     const [y, m, d] = dateStr.split('-').map(Number)
     return new Date(y, m - 1, d, 0, 0, 0, 0)
   }
@@ -65,7 +65,6 @@ export default function AdminDashboard() {
   function formatDayKey(ts) {
     const d = ts?.toDate ? ts.toDate() : ts instanceof Date ? ts : null
     if (!d) return 'Sin fecha'
-
     const y = d.getFullYear()
     const m = String(d.getMonth() + 1).padStart(2, '0')
     const day = String(d.getDate()).padStart(2, '0')
@@ -86,34 +85,40 @@ export default function AdminDashboard() {
   }
 
   // ===============================
-  // Cargar ventas (con filtro opcional Firestore)
+  // Cargar ventas (sales)
   // ===============================
   useEffect(() => {
     async function loadSales() {
       setLoadingSales(true)
+      setSalesError(null)
+
       try {
         const base = collection(db, 'sales')
-
-        // Si hay filtro aplicado, lo metemos al query
         const clauses = []
 
+        // filtros opcionales
         if (appliedRange.from) {
           const fromTs = Timestamp.fromDate(startOfDayLocal(appliedRange.from))
           clauses.push(where('date', '>=', fromTs))
         }
-
         if (appliedRange.to) {
-          // usamos " < inicio del día siguiente" para incluir todo el día 'to'
-          const toNextTs = Timestamp.fromDate(nextDayStartLocal(appliedRange.to))
-          clauses.push(where('date', '<', toNextTs))
+          const toNext = Timestamp.fromDate(nextDayStartLocal(appliedRange.to))
+          clauses.push(where('date', '<', toNext))
         }
 
+        // IMPORTANTE: where(date...) requiere orderBy(date...)
         const q = query(base, ...clauses, orderBy('date', 'desc'))
 
         const snap = await getDocs(q)
-        setSales(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        setSales(list)
       } catch (e) {
-        console.error(e)
+        console.error('🔥 Error cargando sales:', e)
+        setSalesError(
+          e?.message ||
+            'Error cargando ventas (revisa permisos, índice o que exista la colección sales).'
+        )
+        setSales([])
       } finally {
         setLoadingSales(false)
       }
@@ -122,27 +127,26 @@ export default function AdminDashboard() {
     if (showReport) loadSales()
   }, [showReport, appliedRange.from, appliedRange.to])
 
-  // ✅ Agrupar ventas por día (ya filtradas desde Firestore)
+  // agrupar por día
   const salesDaysSorted = useMemo(() => {
-    const salesByDay = sales.reduce((acc, sale) => {
+    const grouped = sales.reduce((acc, sale) => {
       const key = formatDayKey(sale.date)
       if (!acc[key]) acc[key] = { dayKey: key, total: 0, orders: 0, sales: [] }
-
       acc[key].sales.push(sale)
       acc[key].orders += 1
       acc[key].total += Number(sale.total || 0)
-
       return acc
     }, {})
 
-    return Object.values(salesByDay).sort((a, b) => b.dayKey.localeCompare(a.dayKey))
+    return Object.values(grouped).sort((a, b) =>
+      b.dayKey.localeCompare(a.dayKey)
+    )
   }, [sales])
 
-  const grandTotal = useMemo(() => {
-    return sales.reduce((sum, s) => sum + Number(s.total || 0), 0)
-  }, [sales])
-
-  const grandOrders = sales.length
+  const grandTotal = useMemo(
+    () => sales.reduce((sum, s) => sum + Number(s.total || 0), 0),
+    [sales]
+  )
 
   function openNew() {
     setEditing(null)
@@ -206,7 +210,6 @@ export default function AdminDashboard() {
       await updateDoc(doc(db, 'products', p.id), {
         featured: !p.featured,
       })
-
       setFeedback({
         type: 'success',
         msg: !p.featured
@@ -214,25 +217,18 @@ export default function AdminDashboard() {
           : `“${p.name}” se quitó de Destacados.`,
       })
     } catch {
-      setFeedback({
-        type: 'danger',
-        msg: 'No se pudo cambiar el estado de destacado.',
-      })
+      setFeedback({ type: 'danger', msg: 'No se pudo cambiar destacado.' })
     } finally {
       setBusy(false)
     }
   }
 
-  // ✅ Acciones del filtro
   function applyDateFilter(e) {
     e?.preventDefault?.()
-
-    // validación simple (si from > to, intercambiamos)
     if (fromDate && toDate && fromDate > toDate) {
       setAppliedRange({ from: toDate, to: fromDate })
       return
     }
-
     setAppliedRange({ from: fromDate, to: toDate })
   }
 
@@ -244,7 +240,7 @@ export default function AdminDashboard() {
 
   return (
     <Container className="py-4 admin-bg min-vh-100">
-      {/* 🧭 ENCABEZADO */}
+      {/* Encabezado */}
       <Row className="mb-3 align-items-center">
         <Col>
           <h2 className="admin-title">Panel de administración</h2>
@@ -262,17 +258,12 @@ export default function AdminDashboard() {
       </Row>
 
       {feedback && (
-        <Alert
-          variant={feedback.type}
-          dismissible
-          onClose={() => setFeedback(null)}
-          className="mb-3"
-        >
+        <Alert variant={feedback.type} dismissible onClose={() => setFeedback(null)} className="mb-3">
           {feedback.msg}
         </Alert>
       )}
 
-      {/* 📊 REPORTE DE VENTAS */}
+      {/* Reporte */}
       {showReport && (
         <Card className="mb-4 shadow-sm">
           <Card.Body>
@@ -284,36 +275,22 @@ export default function AdminDashboard() {
                 </div>
               </Col>
               <Col md="6">
-                {/* ✅ Filtro por fecha */}
                 <Form onSubmit={applyDateFilter} className="d-flex gap-2 justify-content-end">
                   <Form.Group>
                     <Form.Label className="mb-1">Desde</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={fromDate}
-                      onChange={(e) => setFromDate(e.target.value)}
-                    />
+                    <Form.Control type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
                   </Form.Group>
 
                   <Form.Group>
                     <Form.Label className="mb-1">Hasta</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={toDate}
-                      onChange={(e) => setToDate(e.target.value)}
-                    />
+                    <Form.Control type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
                   </Form.Group>
 
                   <div className="d-flex align-items-end gap-2">
                     <Button type="submit" variant="primary" disabled={loadingSales}>
                       Aplicar
                     </Button>
-                    <Button
-                      type="button"
-                      variant="outline-secondary"
-                      onClick={clearDateFilter}
-                      disabled={loadingSales}
-                    >
+                    <Button type="button" variant="outline-secondary" onClick={clearDateFilter} disabled={loadingSales}>
                       Limpiar
                     </Button>
                   </div>
@@ -321,13 +298,14 @@ export default function AdminDashboard() {
               </Col>
             </Row>
 
-            {/* ✅ Resumen general */}
+            {salesError && <Alert variant="danger">{salesError}</Alert>}
+
             <Card className="mb-3" style={{ background: '#fafafa' }}>
               <Card.Body className="py-3">
                 <Row>
                   <Col>
                     <div className="text-muted">Órdenes</div>
-                    <div style={{ fontSize: 20, fontWeight: 700 }}>{grandOrders}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700 }}>{sales.length}</div>
                   </Col>
                   <Col>
                     <div className="text-muted">Total</div>
@@ -347,7 +325,6 @@ export default function AdminDashboard() {
               <Accordion alwaysOpen>
                 {salesDaysSorted.map((day, idx) => (
                   <Accordion.Item eventKey={String(idx)} key={day.dayKey}>
-                    {/* ✅ Header por día */}
                     <Accordion.Header>
                       <div className="w-100 d-flex justify-content-between align-items-center pe-3">
                         <div>
@@ -367,7 +344,6 @@ export default function AdminDashboard() {
                       </div>
                     </Accordion.Header>
 
-                    {/* ✅ Detalle colapsable */}
                     <Accordion.Body>
                       {day.sales.map((sale) => (
                         <div
@@ -382,19 +358,13 @@ export default function AdminDashboard() {
                         >
                           <Row className="align-items-center">
                             <Col>
-                              <div className="text-muted" style={{ fontSize: 12 }}>
-                                Hora
-                              </div>
+                              <div className="text-muted" style={{ fontSize: 12 }}>Hora</div>
                               <div style={{ fontWeight: 600 }}>
-                                {sale.date?.toDate
-                                  ? sale.date.toDate().toLocaleTimeString()
-                                  : ''}
+                                {sale.date?.toDate ? sale.date.toDate().toLocaleTimeString() : ''}
                               </div>
                             </Col>
                             <Col className="text-end">
-                              <div className="text-muted" style={{ fontSize: 12 }}>
-                                Total
-                              </div>
+                              <div className="text-muted" style={{ fontSize: 12 }}>Total</div>
                               <div style={{ fontWeight: 800, fontSize: 16 }}>
                                 ${Number(sale.total || 0).toFixed(2)}
                               </div>
@@ -402,13 +372,11 @@ export default function AdminDashboard() {
                           </Row>
 
                           <div className="mt-2">
-                            <div className="text-muted" style={{ fontSize: 12 }}>
-                              Productos
-                            </div>
+                            <div className="text-muted" style={{ fontSize: 12 }}>Productos</div>
                             <ul className="mb-0">
-                              {(sale.items || []).map((item) => (
-                                <li key={item.id}>
-                                  {item.name} x {item.quantity}
+                              {(sale.items || []).map((item, i) => (
+                                <li key={item.id || i}>
+                                  {item.name} x {item.quantity ?? item.qty ?? 0}
                                 </li>
                               ))}
                             </ul>
@@ -424,7 +392,7 @@ export default function AdminDashboard() {
         </Card>
       )}
 
-      {/* 📦 TABLA DE PRODUCTOS */}
+      {/* Tabla productos */}
       <Card className="shadow-sm admin-card">
         <Card.Body>
           {loading ? (
@@ -453,30 +421,18 @@ export default function AdminDashboard() {
                         <img
                           src={p.imageUrl}
                           alt={p.name}
-                          style={{
-                            width: 72,
-                            height: 72,
-                            objectFit: 'cover',
-                            borderRadius: 8,
-                          }}
+                          style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8 }}
                         />
                       ) : (
-                        <div
-                          style={{
-                            width: 72,
-                            height: 72,
-                            background: '#eee',
-                            borderRadius: 8,
-                          }}
-                        />
+                        <div style={{ width: 72, height: 72, background: '#eee', borderRadius: 8 }} />
                       )}
                     </td>
+
                     <td>{p.name}</td>
                     <td>{p.category || '-'}</td>
                     <td>${Number(p.price).toFixed(2)}</td>
-                    <td>
-                      <InventoryBadge stock={p.stock} />
-                    </td>
+                    <td><InventoryBadge stock={p.stock} /></td>
+
                     <td>
                       <Form.Check
                         type="switch"
@@ -486,23 +442,14 @@ export default function AdminDashboard() {
                         disabled={busy}
                       />
                     </td>
+
                     <td>{p.isActive ? 'Activo' : 'Oculto'}</td>
+
                     <td className="text-end">
-                      <Button
-                        size="sm"
-                        variant="outline-primary"
-                        className="me-2"
-                        onClick={() => openEdit(p)}
-                        disabled={busy}
-                      >
+                      <Button size="sm" variant="outline-primary" className="me-2" onClick={() => openEdit(p)} disabled={busy}>
                         Editar
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline-danger"
-                        onClick={() => handleDelete(p)}
-                        disabled={busy}
-                      >
+                      <Button size="sm" variant="outline-danger" onClick={() => handleDelete(p)} disabled={busy}>
                         Eliminar
                       </Button>
                     </td>
