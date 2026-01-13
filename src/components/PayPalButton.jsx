@@ -66,23 +66,25 @@ export default function PayPalButton({ total, onSuccess, disabled, branchId }) {
           })
 
           // 2) 📦 Guardar order (SOLO AQUÍ, para evitar duplicados)
-          const orderRef = await addDoc(collection(db, 'orders'), {
+         const orderData = {
             userId: user.uid,
-            items: normalizedItems, // {productId,name,qty,price}
+            items: normalizedItems,
             total: Number(total || 0),
-            branchId: cleanBranch,
+            branchId: cleanBranch || 'Quintas',
             paypalOrderId: details.id,
             paymentStatus: 'paid',
             status: 'enviado',
             createdAt: serverTimestamp(),
-          })
+          }
 
-          // 3) 📊 Guardar sale (reporte)
+          const orderRef = await addDoc(collection(db, 'orders'), orderData)
+
+          // ✅ sales toma branchId desde la orden (fuente de verdad)
           await addDoc(collection(db, 'sales'), {
             orderId: orderRef.id,
-            userId: user.uid,
-            total: Number(total || 0),
-            branchId: cleanBranch,
+            userId: orderData.userId,
+            total: orderData.total,
+            branchId: orderData.branchId,
             date: serverTimestamp(),
             items: normalizedItems.map((it) => ({
               id: it.productId,

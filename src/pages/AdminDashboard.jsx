@@ -320,8 +320,8 @@ export default function AdminDashboard() {
                       onChange={(e) => setBranch(e.target.value)}
                     >
                       <option value="">Todas</option>
-                      <option value="Quintas">Quintas</option>
-                      <option value="Tres Ríos">Tres Ríos</option>
+                      <option value="quintas">Vianelo quintas</option>
+                      <option value="chapule">Vianelo chapule</option>
                     </Form.Select>
                   </Form.Group>
 
