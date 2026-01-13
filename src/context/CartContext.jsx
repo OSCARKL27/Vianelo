@@ -1,53 +1,51 @@
-// src/context/CartContext.jsx
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { getAuth, onAuthStateChanged } from 'firebase/auth'
 
-const CartCtx = createContext(null);
+const CartCtx = createContext(null)
 
-// Hook para usar el carrito en cualquier componente
 export function useCart() {
-  const ctx = useContext(CartCtx);
-  if (!ctx) {
-    throw new Error("useCart debe usarse dentro de un <CartProvider>");
-  }
-  return ctx;
+  const ctx = useContext(CartCtx)
+  if (!ctx) throw new Error('useCart debe usarse dentro de un <CartProvider>')
+  return ctx
 }
 
-const LS_KEY = "cart_vianelo";
+const LS_KEY = 'cart_vianelo'
 
 export function CartProvider({ children }) {
-  const [items, setItems] = useState([]);
-  const [lastAdded, setLastAdded] = useState(null); // para el carrito flotante
+  const [items, setItems] = useState([])
+  const [lastAdded, setLastAdded] = useState(null)
 
-  // Cargar desde localStorage al iniciar
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
-      setItems(saved);
+      const saved = JSON.parse(localStorage.getItem(LS_KEY) || '[]')
+      setItems(saved)
     } catch (e) {
-      console.error("Error leyendo carrito de localStorage", e);
+      console.error('Error leyendo carrito de localStorage', e)
     }
-  }, []);
+  }, [])
 
-  // Guardar en localStorage cada vez que cambie
   useEffect(() => {
-    localStorage.setItem(LS_KEY, JSON.stringify(items));
-  }, [items]);
+    localStorage.setItem(LS_KEY, JSON.stringify(items))
+  }, [items])
 
   function addToCart(product, qty = 1) {
-    if (!product || !product.id) return;
+    if (!product || !product.id) return
+
+    const maxStock = Number(product.stock ?? Infinity)
+    const safeQty = Math.max(1, Number(qty || 1))
 
     setItems((prev) => {
-      const idx = prev.findIndex((p) => p.id === product.id);
+      const idx = prev.findIndex((p) => p.id === product.id)
+
       if (idx >= 0) {
-        const copy = [...prev];
-        copy[idx] = { ...copy[idx], qty: copy[idx].qty + qty };
-        return copy;
+        const copy = [...prev]
+        const current = copy[idx]
+        const currentMax = Number(current.maxStock ?? maxStock ?? Infinity)
+
+        const nextQty = Math.min(current.qty + safeQty, currentMax)
+
+        copy[idx] = { ...current, qty: nextQty, maxStock: currentMax }
+        return copy
       }
 
       return [
@@ -56,86 +54,91 @@ export function CartProvider({ children }) {
           id: product.id,
           name: product.name,
           price: Number(product.price) || 0,
-          imageUrl: product.imageUrl || "",
-          qty,
+          imageUrl: product.imageUrl || '',
+          qty: Math.min(safeQty, maxStock),
+          maxStock: maxStock, // ✅ guardamos stock al momento de agregar
         },
-      ];
-    });
+      ]
+    })
 
-    // Para el popup flotante
     setLastAdded({
       id: product.id,
       name: product.name,
       price: Number(product.price) || 0,
-      imageUrl: product.imageUrl || "",
-    });
-
-    // Ocultarlo automáticamente después de 2.5s
-    setTimeout(() => setLastAdded(null), 2500);
+      imageUrl: product.imageUrl || '',
+    })
+    setTimeout(() => setLastAdded(null), 2500)
   }
 
   function removeFromCart(id) {
-    setItems((prev) => prev.filter((p) => p.id !== id));
+    setItems((prev) => prev.filter((p) => p.id !== id))
   }
 
-  // Cambiar cantidad directamente (ej. input numérico)
   function updateQty(id, qty) {
-    const n = Number(qty);
+    const n = Math.max(0, Number(qty || 0))
     setItems((prev) =>
       prev
-        .map((p) =>
-          p.id === id ? { ...p, qty: n } : p
-        )
-        .filter((p) => p.qty > 0) // si llega a 0, lo quitamos
-    );
+        .map((p) => {
+          if (p.id !== id) return p
+          const maxStock = Number(p.maxStock ?? Infinity)
+          return { ...p, qty: Math.min(n, maxStock) }
+        })
+        .filter((p) => p.qty > 0)
+    )
   }
 
-  // 🔼 Aumentar en 1
   function increaseQty(id) {
     setItems((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, qty: p.qty + 1 } : p
-      )
-    );
+      prev.map((p) => {
+        if (p.id !== id) return p
+        const maxStock = Number(p.maxStock ?? Infinity)
+        const next = p.qty + 1
+        return { ...p, qty: Math.min(next, maxStock) }
+      })
+    )
   }
 
-  // 🔽 Disminuir en 1 (y si llega a 0, se borra)
   function decreaseQty(id) {
     setItems((prev) =>
       prev
-        .map((p) =>
-          p.id === id ? { ...p, qty: p.qty - 1 } : p
-        )
+        .map((p) => (p.id === id ? { ...p, qty: p.qty - 1 } : p))
         .filter((p) => p.qty > 0)
-    );
+    )
   }
 
   function clearCart() {
-    setItems([]);
+    setItems([])
+    localStorage.removeItem(LS_KEY)
   }
 
-  const total = useMemo(
-    () => items.reduce((acc, p) => acc + p.price * p.qty, 0),
-    [items]
-  );
+  // ✅ limpiar carrito al logout
+  useEffect(() => {
+    const auth = getAuth()
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        setItems([])
+        localStorage.removeItem(LS_KEY)
+        setLastAdded(null)
+      }
+    })
+    return () => unsub()
+  }, [])
 
-  const count = useMemo(
-    () => items.reduce((acc, p) => acc + p.qty, 0),
-    [items]
-  );
+  const total = useMemo(() => items.reduce((acc, p) => acc + p.price * p.qty, 0), [items])
+  const count = useMemo(() => items.reduce((acc, p) => acc + p.qty, 0), [items])
 
   const value = {
     items,
     addToCart,
     removeFromCart,
     updateQty,
-    increaseQty,   // 👈 ahora disponible
-    decreaseQty,   // 👈 ahora disponible
+    increaseQty,
+    decreaseQty,
     clearCart,
     total,
     count,
-    lastAdded, // para el carrito flotante
-  };
+    lastAdded,
+  }
 
-  return <CartCtx.Provider value={value}>{children}</CartCtx.Provider>;
+  return <CartCtx.Provider value={value}>{children}</CartCtx.Provider>
 }

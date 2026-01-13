@@ -13,7 +13,7 @@ export default function OrderSuccessPage() {
   const [loading, setLoading] = useState(true)
 
   // ⏳ Cuenta regresiva
-  const SECONDS_TOTAL = 10
+  const SECONDS_TOTAL = 5
   const [seconds, setSeconds] = useState(SECONDS_TOTAL)
 
   // 1) Cargar pedido

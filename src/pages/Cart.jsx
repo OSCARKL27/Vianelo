@@ -1,17 +1,7 @@
 import React, { useState } from 'react'
-import {
-  Container,
-  Table,
-  Button,
-  Card,
-  Form,
-  Alert,
-} from 'react-bootstrap'
+import { Container, Table, Button, Card, Form, Alert } from 'react-bootstrap'
 import { useCart } from '../context/CartContext'
-import { db } from '../services/firebase'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { useNavigate } from 'react-router-dom'
-import { getAuth } from 'firebase/auth'
 import PayPalButton from '../components/PayPalButton'
 
 // 🔹 Sucursales disponibles
@@ -31,21 +21,13 @@ const thumbStyle = {
 }
 
 export default function CartPage() {
-  const {
-    items,
-    total,
-    removeFromCart,
-    clearCart,
-    increaseQty,
-    decreaseQty,
-  } = useCart()
+  const { items, total, removeFromCart, clearCart, increaseQty, decreaseQty } = useCart()
 
   const [selectedBranchId, setSelectedBranchId] = useState('')
   const [savingOrder, setSavingOrder] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
 
   const navigate = useNavigate()
-  const auth = getAuth()
 
   // 👉 Carrito vacío
   if (items.length === 0) {
@@ -57,66 +39,32 @@ export default function CartPage() {
     )
   }
 
-  // 👉 SOLO cuando PayPal confirma
-  const handlePaySuccess = async (paymentDetails) => {
+  // ✅ PayPal ya crea order/sale/stock. Aquí solo redirigimos.
+  const handlePaySuccess = async ({ orderId }) => {
     setErrorMsg('')
 
     if (!selectedBranchId) {
       setErrorMsg('Selecciona una sucursal para enviar tu pedido.')
       return
     }
-
-    const user = auth.currentUser
-    if (!user) {
-      setErrorMsg('Debes iniciar sesión para hacer un pedido.')
+    if (!orderId) {
+      setErrorMsg('No se recibió el ID del pedido. Intenta de nuevo.')
       return
     }
 
-    setSavingOrder(true)
-
-    try {
-      const orderData = {
-        branchId: selectedBranchId,
-        items: items.map((it) => ({
-          productId: it.id,
-          name: it.name,
-          qty: it.qty,
-          price: it.price,
-          subtotal: it.price * it.qty,
-          imageUrl: it.imageUrl || null,
-        })),
-        total,
-        status: 'pagado',
-        paypalOrderId: paymentDetails.id,
-        createdAt: serverTimestamp(),
-        userId: user.uid,
-        userName: user.displayName || '',
-        userEmail: user.email || '',
-      }
-
-      const docRef = await addDoc(collection(db, 'orders'), orderData)
-
-      clearCart()
-      navigate(`/pedido-exitoso/${docRef.id}`)
-    } catch (error) {
-      console.error(error)
-      setErrorMsg('Error al guardar el pedido. Intenta de nuevo.')
-    } finally {
-      setSavingOrder(false)
-    }
+    // el carrito ya se limpió en PayPalButton, pero no pasa nada si lo vuelves a limpiar
+    clearCart()
+    navigate(`/pedido-exitoso/${orderId}`)
   }
 
   return (
     <Container className="cart-page min-vh-100 py-4">
       <div className="mx-auto" style={{ maxWidth: 950 }}>
         <Card className="shadow-sm overflow-hidden">
-          {/* 🔹 HEADER CORREGIDO */}
           <Card.Header className="bg-white py-3">
             <div className="d-flex align-items-center justify-content-between">
               <h4 className="mb-0 fw-bold">Tu carrito</h4>
-              <span className="text-muted small">
-                {items.length} producto(s)
-              </span>
+              <span className="text-muted small">{items.length} producto(s)</span>
             </div>
           </Card.Header>
 
@@ -135,104 +83,123 @@ export default function CartPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((it) => (
-                  <tr key={it.id}>
-                    <td>
-                      {it.imageUrl ? (
-                        <img
-                          src={it.imageUrl}
-                          alt={it.name}
-                          style={thumbStyle}
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            ...thumbStyle,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: '#f3f3f3',
-                            boxShadow: 'none',
-                          }}
-                        >
-                          —
+                {items.map((it) => {
+                  const maxStock = Number(it.maxStock ?? it.stock ?? Infinity)
+                  const atMax = Number(it.qty || 0) >= maxStock
+
+                  return (
+                    <tr key={it.id}>
+                      <td>
+                        {it.imageUrl ? (
+                          <img src={it.imageUrl} alt={it.name} style={thumbStyle} loading="lazy" />
+                        ) : (
+                          <div
+                            style={{
+                              ...thumbStyle,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: '#f3f3f3',
+                              boxShadow: 'none',
+                            }}
+                          >
+                            —
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="fw-semibold">{it.name}</td>
+                      <td>${Number(it.price || 0).toFixed(2)}</td>
+
+                      <td>
+                        <div className="d-flex align-items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline-secondary"
+                            onClick={() => decreaseQty(it.id)}
+                            disabled={savingOrder}
+                          >
+                            −
+                          </Button>
+
+                          <span className="fw-semibold">{it.qty}</span>
+
+                          <Button
+                            size="sm"
+                            variant="outline-secondary"
+                            onClick={() => increaseQty(it.id)}
+                            disabled={savingOrder || atMax}
+                            title={atMax ? `Máximo en stock: ${maxStock}` : ''}
+                          >
+                            +
+                          </Button>
                         </div>
-                      )}
-                    </td>
 
-                    <td className="fw-semibold">{it.name}</td>
+                        {Number.isFinite(maxStock) && maxStock !== Infinity && (
+                          <div className="text-muted small mt-1">
+                            Stock disponible: {maxStock}
+                          </div>
+                        )}
+                      </td>
 
-                    <td>${it.price.toFixed(2)}</td>
+                      <td>${(Number(it.price || 0) * Number(it.qty || 0)).toFixed(2)}</td>
 
-                    <td>
-                      <div className="d-flex align-items-center gap-2">
+                      <td>
                         <Button
                           size="sm"
-                          variant="outline-secondary"
-                          onClick={() => decreaseQty(it.id)}
+                          variant="outline-danger"
+                          onClick={() => removeFromCart(it.id)}
+                          disabled={savingOrder}
                         >
-                          −
+                          ✕
                         </Button>
-                        <span className="fw-semibold">{it.qty}</span>
-                        <Button
-                          size="sm"
-                          variant="outline-secondary"
-                          onClick={() => increaseQty(it.id)}
-                        >
-                          +
-                        </Button>
-                      </div>
-                    </td>
-
-                    <td>${(it.price * it.qty).toFixed(2)}</td>
-
-                    <td>
-                      <Button
-                        size="sm"
-                        variant="outline-danger"
-                        onClick={() => removeFromCart(it.id)}
-                      >
-                        ✕
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </Table>
 
-            {/* 🔹 SUCURSAL */}
+            {/* SUCURSAL */}
             <Form.Group className="mb-3">
               <Form.Label>Selecciona la sucursal</Form.Label>
               <Form.Select
+                required
                 value={selectedBranchId}
-                onChange={(e) => setSelectedBranchId(e.target.value)}
+                onChange={(e) => {
+                  setSelectedBranchId(e.target.value)
+                  setErrorMsg('')
+                }}
                 disabled={savingOrder}
+                isInvalid={!!errorMsg && !selectedBranchId}
               >
-                <option value="">Selecciona una sucursal</option>
+                <option value="" disabled>
+                  Selecciona una sucursal
+                </option>
                 {BRANCHES.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.label}
                   </option>
                 ))}
               </Form.Select>
+
+              <Form.Control.Feedback type="invalid">
+                Selecciona una sucursal para continuar.
+              </Form.Control.Feedback>
             </Form.Group>
 
-            {/* 🔹 TOTAL */}
+            {/* TOTAL */}
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <strong>Total: ${total.toFixed(2)}</strong>
-              <Button
-                variant="outline-secondary"
-                onClick={clearCart}
-                disabled={savingOrder}
-              >
+              <strong>Total: ${Number(total || 0).toFixed(2)}</strong>
+              <Button variant="outline-secondary" onClick={clearCart} disabled={savingOrder}>
                 Vaciar carrito
               </Button>
             </div>
 
-            {/* 🔹 PAYPAL */}
+            {/* PAYPAL */}
             <PayPalButton
               total={total}
+              branchId={selectedBranchId} // ✅ importante
               disabled={savingOrder || !selectedBranchId}
               onSuccess={handlePaySuccess}
             />

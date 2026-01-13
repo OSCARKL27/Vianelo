@@ -49,6 +49,12 @@ export default function AdminDashboard() {
   const [toDate, setToDate] = useState('')
   const [appliedRange, setAppliedRange] = useState({ from: '', to: '' })
 
+  // ✅ FILTRO POR SUCURSAL
+  // branch = valor en el select (sin aplicar aún)
+  // appliedBranch = valor ya aplicado al reporte
+  const [branch, setBranch] = useState('')
+  const [appliedBranch, setAppliedBranch] = useState('')
+
   function startOfDayLocal(dateStr) {
     const [y, m, d] = dateStr.split('-').map(Number)
     return new Date(y, m - 1, d, 0, 0, 0, 0)
@@ -90,6 +96,7 @@ export default function AdminDashboard() {
         const base = collection(db, 'sales')
         const clauses = []
 
+        // 🔹 Rango fechas
         if (appliedRange.from) {
           const fromTs = Timestamp.fromDate(startOfDayLocal(appliedRange.from))
           clauses.push(where('date', '>=', fromTs))
@@ -98,6 +105,12 @@ export default function AdminDashboard() {
         if (appliedRange.to) {
           const toNext = Timestamp.fromDate(nextDayStartLocal(appliedRange.to))
           clauses.push(where('date', '<', toNext))
+        }
+
+        // ✅ Sucursal (IMPORTANTE: el campo debe existir en sales)
+        // Cambia 'branchId' por 'branch' si así lo guardaste.
+        if (appliedBranch) {
+          clauses.push(where('branchId', '==', appliedBranch))
         }
 
         const q = query(base, ...clauses, orderBy('date', 'desc'))
@@ -113,7 +126,7 @@ export default function AdminDashboard() {
     }
 
     if (showReport) loadSales()
-  }, [showReport, appliedRange.from, appliedRange.to])
+  }, [showReport, appliedRange.from, appliedRange.to, appliedBranch])
 
   const salesDaysSorted = useMemo(() => {
     const grouped = sales.reduce((acc, sale) => {
@@ -206,6 +219,10 @@ export default function AdminDashboard() {
 
   function applyDateFilter(e) {
     e?.preventDefault?.()
+
+    // ✅ aplica sucursal también
+    setAppliedBranch(branch)
+
     if (fromDate && toDate && fromDate > toDate) {
       setAppliedRange({ from: toDate, to: fromDate })
       return
@@ -217,6 +234,10 @@ export default function AdminDashboard() {
     setFromDate('')
     setToDate('')
     setAppliedRange({ from: '', to: '' })
+
+    // ✅ limpiar sucursal
+    setBranch('')
+    setAppliedBranch('')
   }
 
   return (
@@ -231,11 +252,7 @@ export default function AdminDashboard() {
         </Col>
 
         <Col xs={12} md="auto" className="admin-actions d-grid d-md-flex gap-2">
-          <Button
-            onClick={openNew}
-            disabled={busy}
-            className="btn-admin-white"
-          >
+          <Button onClick={openNew} disabled={busy} className="btn-admin-white">
             + Nuevo producto
           </Button>
 
@@ -267,7 +284,11 @@ export default function AdminDashboard() {
               <Col xs={12} md>
                 <h4 className="mb-1">Reporte de ventas</h4>
                 <div className="text-muted">
-                  Rango: <strong>{formatRangeLabel(appliedRange.from, appliedRange.to)}</strong>
+                  Rango:{' '}
+                  <strong>
+                    {formatRangeLabel(appliedRange.from, appliedRange.to)}
+                  </strong>{' '}
+                  • Sucursal: <strong>{appliedBranch || 'Todas'}</strong>
                 </div>
               </Col>
 
@@ -291,8 +312,23 @@ export default function AdminDashboard() {
                     />
                   </Form.Group>
 
+                  {/* ✅ Sucursal */}
+                  <Form.Group>
+                    <Form.Label className="mb-1">Sucursal</Form.Label>
+                    <Form.Select
+                      value={branch}
+                      onChange={(e) => setBranch(e.target.value)}
+                    >
+                      <option value="">Todas</option>
+                      <option value="Quintas">Quintas</option>
+                      <option value="Tres Ríos">Tres Ríos</option>
+                    </Form.Select>
+                  </Form.Group>
+
                   <div className="admin-filter-actions">
-                    <Button type="submit" disabled={loadingSales}>Aplicar</Button>
+                    <Button type="submit" disabled={loadingSales}>
+                      Aplicar
+                    </Button>
                     <Button
                       type="button"
                       variant="outline-secondary"
@@ -363,7 +399,9 @@ export default function AdminDashboard() {
                             <Card.Body className="py-2">
                               <div className="d-flex justify-content-between align-items-center">
                                 <div className="text-muted small">
-                                  {sale.date?.toDate ? sale.date.toDate().toLocaleTimeString() : ''}
+                                  {sale.date?.toDate
+                                    ? sale.date.toDate().toLocaleTimeString()
+                                    : ''}
                                 </div>
                                 <Badge bg="light" text="dark" className="fw-bold">
                                   ${Number(sale.total || 0).toFixed(2)}
@@ -430,7 +468,9 @@ export default function AdminDashboard() {
                         <td className="fw-semibold">{p.name}</td>
                         <td>{p.category || '-'}</td>
                         <td>${Number(p.price).toFixed(2)}</td>
-                        <td><InventoryBadge stock={p.stock} /></td>
+                        <td>
+                          <InventoryBadge stock={p.stock} />
+                        </td>
                         <td>
                           <Form.Check
                             type="switch"

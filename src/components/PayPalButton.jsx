@@ -1,15 +1,7 @@
 import { PayPalButtons } from '@paypal/react-paypal-js'
 import { useCart } from '../context/CartContext'
-
-import {
-  collection,
-  addDoc,
-  serverTimestamp,
-  doc,
-  runTransaction,
-} from 'firebase/firestore'
+import { collection, addDoc, serverTimestamp, doc, runTransaction } from 'firebase/firestore'
 import { db } from '../services/firebase'
-
 import { getAuth } from 'firebase/auth'
 
 export default function PayPalButton({ total, onSuccess, disabled, branchId }) {
@@ -23,9 +15,7 @@ export default function PayPalButton({ total, onSuccess, disabled, branchId }) {
 
       createOrder={(data, actions) =>
         actions.order.create({
-          purchase_units: [
-            { amount: { value: Number(total || 0).toFixed(2) } },
-          ],
+          purchase_units: [{ amount: { value: Number(total || 0).toFixed(2) } }],
         })
       }
 
@@ -33,14 +23,17 @@ export default function PayPalButton({ total, onSuccess, disabled, branchId }) {
         try {
           const details = await actions.order.capture()
 
-          // ✅ Asegura sesión (tus rules lo requieren para products/sales/orders)
+          // ✅ auth requerido por tus rules
           const auth = getAuth()
           const user = auth.currentUser
           if (!user) throw new Error('Debes iniciar sesión para pagar.')
 
-          // ✅ Normaliza items (compatibilidad qty/quantity y productId/id)
+          const cleanBranch = String(branchId || '').trim()
+          if (!cleanBranch) throw new Error('Selecciona una sucursal.')
+
+          // ✅ Normaliza items (productId/id) (qty/quantity)
           const normalizedItems = items.map((it) => ({
-            productId: it.productId || it.id, // 👈 CRÍTICO
+            productId: it.productId || it.id,
             name: it.name,
             qty: Number(it.qty ?? it.quantity ?? 0),
             price: Number(it.price ?? 0),
@@ -72,35 +65,37 @@ export default function PayPalButton({ total, onSuccess, disabled, branchId }) {
             }
           })
 
-          // 2) 📦 Guardar order (IMPORTANTE: userId para MyOrdersPage)
+          // 2) 📦 Guardar order (SOLO AQUÍ, para evitar duplicados)
           const orderRef = await addDoc(collection(db, 'orders'), {
             userId: user.uid,
             items: normalizedItems, // {productId,name,qty,price}
             total: Number(total || 0),
-            branchId: String(branchId || '').trim(),
+            branchId: cleanBranch,
             paypalOrderId: details.id,
             paymentStatus: 'paid',
-            status: 'enviado', // ✅ para que tu UI lo mapee
+            status: 'enviado',
             createdAt: serverTimestamp(),
           })
 
-          // 3) 📊 Guardar sale (para reporte)
+          // 3) 📊 Guardar sale (reporte)
           await addDoc(collection(db, 'sales'), {
             orderId: orderRef.id,
             userId: user.uid,
             total: Number(total || 0),
-            branchId: String(branchId || '').trim(),
-            date: serverTimestamp(), // ✅ AdminDashboard usa "date"
+            branchId: cleanBranch,
+            date: serverTimestamp(),
             items: normalizedItems.map((it) => ({
               id: it.productId,
               name: it.name,
-              quantity: Number(it.qty || 0), // ✅ AdminDashboard usa "quantity"
+              quantity: Number(it.qty || 0),
             })),
           })
 
+          // 4) 🧹 limpiar carrito
           clearCart()
-          onSuccess?.(details)
-          alert('Pago COMPLETADO ✅ (Stock + Order + Sale)')
+
+          // ✅ Devuelve orderId al CartPage para redirigir al success
+          onSuccess?.({ details, orderId: orderRef.id })
         } catch (error) {
           console.error('🔥 ERROR REAL:', error)
           alert(error?.message || 'Error al procesar el pago')
