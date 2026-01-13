@@ -1,0 +1,55 @@
+.admin-wrap { padding-bottom: 60px; }
+.admin-card { border-radius: 16px; }
+.admin-thumb {
+  width: 64px; height: 64px; border-radius: 12px;
+  object-fit: cover; background: #eee; flex: 0 0 auto;
+}
+.admin-thumb.placeholder { display: inline-block; }
+.admin-filter { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.admin-filter-actions { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; }
+@media (min-width: 768px) {
+  .admin-filter { display: flex; align-items: end; gap: 10px; }
+  .admin-filter-actions { display: flex; gap: 8px; }
+}
+.admin-metric { border-radius: 14px; }
+.admin-metric-value { font-size: 20px; font-weight: 800; line-height: 1.1; }
+/* Botones blancos del Admin */
+.btn-admin-white {
+  background: #ffffff;
+  color: #111111;
+  border: 1px solid #e5e5e5;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+/* Hover */
+.btn-admin-white:hover {
+  background: #f7f7f7;
+  color: #000;
+  border-color: #dcdcdc;
+}
+
+/* Activo / presionado */
+.btn-admin-white:active {
+  transform: translateY(1px);
+}
+
+/* Disabled */
+.btn-admin-white:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* En móvil ocupan todo el ancho */
+.admin-actions .btn {
+  width: 100%;
+}
+
+/* En desktop se ajustan al contenido */
+@media (min-width: 768px) {
+  .admin-actions .btn {
+    width: auto;
+  }
+}
